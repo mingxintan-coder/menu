@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>村驴隋坡菜单换算器</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="菜单">
+<meta name="theme-color" content="#1f6b45">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: one column, a menu board of rows; a dish opens as a sheet with a scale readout on top */
+  --bg:#eef1ee;        /* tile grey-green */
+  --panel:#ffffff;
+  --ink:#16211c;
+  --muted:#5d6b64;
+  --line:#d3dad5;
+  --accent:#1f6b47;    /* scallion green */
+  --accent-ink:#ffffff;
+  --warn:#b3261e;      /* chili red, for cautions only */
+  --readout:#0f1a15;
+  --readout-ink:#c9f5d9;
+  --display:"Noto Serif SC","Songti SC","SimSun",serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111613;--panel:#1a211d;--ink:#e8eeea;--muted:#9aa8a0;--line:#2e3832;
+    --accent:#5fc391;--accent-ink:#0c1410;--warn:#ff8a80;--readout:#070b09;--readout-ink:#b9f3cf;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111613;--panel:#1a211d;--ink:#e8eeea;--muted:#9aa8a0;--line:#2e3832;
+  --accent:#5fc391;--accent-ink:#0c1410;--warn:#ff8a80;--readout:#070b09;--readout-ink:#b9f3cf;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:680px;margin:0 auto;padding:20px 16px 56px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:30px;font-weight:900;letter-spacing:.02em}
+h2{font-size:26px;font-weight:900}
+h3{font-size:15px;font-weight:600;font-family:var(--body);color:var(--muted);letter-spacing:.08em}
+p{margin:0}
+.sub{color:var(--muted);font-size:14px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* menu */
+.menu{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.menu li+li{border-top:1px solid var(--line)}
+.menu .rowbtn{display:grid;grid-template-columns:1fr auto;gap:2px 12px;flex:1;min-width:0;text-align:left;background:none;border:0;padding:14px 16px;cursor:pointer}
+.menu .rowbtn:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.menu .name{font-family:var(--display);font-size:19px;font-weight:600}
+.menu .base{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;font-size:14px;align-self:center;white-space:nowrap}
+.menu .tag{grid-column:1/-1;color:var(--muted);font-size:13px}
+
+/* collapsible */
+details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(45deg)}
+@media (prefers-reduced-motion:reduce){details>summary::after{transition:none}}
+.sec>summary{padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.sec[open]>summary{border-radius:14px 14px 0 0;border-bottom:0}
+.sec[open]>.menu{border-radius:0 0 14px 14px}
+.st{font-family:var(--display);font-size:18px;font-weight:900}
+.cnt{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.fchip{font-size:14px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chef{font-family:var(--body);font-size:11px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:8px;vertical-align:middle;white-space:nowrap}
+.c-c{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.c-s{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+details.card>summary+*{margin-top:0}
+
+.menu li{display:flex;align-items:stretch}
+.star{flex:none;width:48px;background:none;border:0;border-left:1px solid var(--line);font-size:20px;cursor:pointer;color:var(--muted)}
+.star[aria-pressed="true"]{color:var(--warn)}
+.c-d{background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--ink)}
+.nohot{color:var(--muted,#888);font-weight:400;border-style:dashed}
+.hot{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-right:6px;font-variant-numeric:tabular-nums}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:18px 16px;color:var(--muted);font-size:14px}
+#d-star[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--panel)}
+
+.menu .rowbtn{grid-template-columns:52px 1fr auto}
+.thumb{grid-row:1/3;width:52px;height:52px;border-radius:50%;overflow:hidden;display:block;align-self:center}
+.thumb svg,.thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.menu .tag{grid-column:2/-1}
+.herowrap{display:flex;flex-direction:column;gap:8px}
+.heroimg{display:flex;justify-content:center;align-items:center;aspect-ratio:16/9;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.heroimg svg{height:88%;width:auto}
+.heroimg img{width:100%;height:100%;object-fit:cover;display:block}
+.herobar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+label.fchip{display:inline-block}
+.vh:focus-visible+button,.vh:focus-visible{outline:3px solid var(--accent)}
+
+.search{display:flex;gap:8px;align-items:center}
+.search input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 16px}
+.search input::placeholder{color:var(--muted)}
+
+/* dish */
+.back{align-self:flex-start;background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px}
+.readout{background:var(--readout);color:var(--readout-ink);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.readout label{font-size:13px;opacity:.8}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.readout input{flex:1 1 120px;min-width:0;font:700 28px/1.2 ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;background:transparent;color:inherit;border:0;border-bottom:2px solid currentColor;padding:2px 0;border-radius:0}
+.readout select,.chip{font:inherit;font-size:14px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:8px;padding:6px 10px;cursor:pointer}
+.readout select option{color:#111;background:#fff}
+.chip[aria-pressed="true"]{background:var(--readout-ink);color:var(--readout)}
+.factor{font-size:13px;opacity:.85;font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td{padding:7px 0;border-top:1px solid var(--line);vertical-align:top}
+tr:first-child td{border-top:0}
+td.q{text-align:right;font-weight:700;white-space:nowrap;padding-left:12px}
+td .n{font-size:13px;color:var(--muted);display:block}
+.fixed{font-size:11px;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:6px}
+ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px}
+ol b{color:var(--accent);font-variant-numeric:tabular-nums}
+.tips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.tips li{border-left:3px solid var(--warn);padding-left:10px}
+.src{font-size:13px;color:var(--muted)}
+a{color:var(--accent)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="view-menu">
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <header>
+      <h1>村驴 · 隋坡 · 老东北</h1>
+      <p class="sub">按你手里的食材重量换算调料。点分类展开，点菜名看用料和步骤。配图是示意图，可以换成自己的照片。</p>
+    </header>
+    <div class="search"><label for="q" class="vh">搜索</label><input id="q" type="search" placeholder="搜菜名、食材、调料" autocomplete="off" enterkeyhint="search"><button type="button" id="q-clear" class="fchip" hidden>清除</button></div>
+    <div class="row" id="chefs"></div>
+    <div class="bar"><div class="row" id="views"></div></div>
+    <div id="menu" style="display:flex;flex-direction:column;gap:10px"></div>
+    <p class="src">配方整理自网友按村驴、隋坡（隋卞一做）、老东北美食视频记录的文字版（下厨房、小红书、抖音等），没有逐条对照原视频核对。标「※」的地方文字版缺失或存疑，请以原视频为准。</p>
+  </div>
+</section>
+
+<section id="view-dish" hidden>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <button class="back" id="back" type="button">← 返回菜单</button>
+    <header>
+      <h2 id="d-name"></h2>
+      <p class="sub" id="d-tag"></p>
+      <p class="sub" id="d-hot"></p>
+      <button type="button" class="fchip" id="d-star" style="margin-top:8px"></button>
+    </header>
+
+    <div class="herowrap">
+      <div id="hero"></div>
+      <div class="herobar">
+        <span class="sub" id="hero-cap"></span>
+        <span class="row">
+          <label class="fchip" for="img-file">换成我的照片</label>
+          <input id="img-file" type="file" accept="image/*" class="vh">
+          <button type="button" class="fchip" id="img-clear">恢复示意图</button>
+        </span>
+      </div>
+      <p class="sub" id="img-msg" role="status"></p>
+    </div>
+
+    <div class="readout" id="readout">
+      <label for="amt" id="amt-label"></label>
+      <div class="row">
+        <input id="amt" type="number" inputmode="decimal" enterkeyhint="done" min="0" step="any">
+        <select id="unit" aria-label="单位"></select>
+        <button type="button" id="amt-done" class="chip">完成</button>
+      </div>
+      <div class="row" id="quick"></div>
+      <div class="factor" id="factor"></div>
+    </div>
+
+    <div id="d-groups" style="display:flex;flex-direction:column;gap:14px"></div>
+
+    <details class="card" id="d-steps-card" open>
+      <summary><h3>步骤</h3></summary>
+      <ol id="d-steps"></ol>
+    </details>
+
+    <details class="card" id="d-tips-card" open>
+      <summary><h3>注意</h3></summary>
+      <ul class="tips" id="d-tips"></ul>
+    </details>
+
+    <p class="src" id="d-src"></p>
+  </div>
+</section>
+
+</div>
+<script>
+/* q: number | [lo,hi] | null (then t is shown as-is). fix:true = does not scale.
+   In steps, {{n}} is a quantity that scales with the main ingredient. */
+const DISHES=[
+{id:"guobaorou",hot:[46.3,"抖音","万赞"],name:"锅包肉",tag:"东北老式，白糖米醋的糖醋口",main:"通脊肉（大里脊）",base:400,unit:"g",
+ groups:[
+  ["主料",[["通脊肉",400,"g"],["盐（腌肉）",2,"g"]]],
+  ["挂糊",[["土豆淀粉",250,"g","至少提前 1 小时泡水"],["清水",3,"汤勺"],["食用油",2,"汤勺","豆油颜色更好"]]],
+  ["糖醋汁",[["白糖",90,"g","可减"],["9 度米醋",75,"g"],["生抽",5,"g"],["盐",2,"g"],["玉米淀粉",2,"g"],["清水（调淀粉）",7,"g"]]],
+  ["配菜",[["大蒜",4,"粒","切片"],["姜",2,"片","切丝"],["葱白丝、胡萝卜丝、香菜段",null,"","适量"],["炸肉用油",null,"","宽油",true]]]],
+ steps:[
+  "土豆淀粉 {{250}}g 加水浸泡至少 1 小时，泡透后把上面的清水倒掉。",
+  "里脊斜刀切片，厚度约等于筷子头。清水洗两遍后攥去水分，加 {{2}}g 盐抓到发黏起胶。",
+  "调糖醋汁：白糖 {{90}}g、米醋 {{75}}g、生抽 {{5}}g、盐 {{2}}g，再加淀粉水（玉米淀粉 {{2}}g + 水 {{7}}g）搅匀。",
+  "把沉底的湿淀粉抓碎，放入肉片，加 {{3}} 汤勺清水抓匀，状态是能缓慢流动、碗底没有多余干粉。再加 {{2}} 汤勺油抓匀。",
+  "宽油下锅，肉片逐片下锅炸到定型浅黄，捞出。",
+  "油继续大火升到 190–200℃，肉片回锅复炸到金黄酥脆，捞出。",
+  "锅里留一点底油烧到冒烟，糖醋汁搅匀后倒入，不停搅动约 20 秒熬到略微挂铲，淋一点炸肉的油。",
+  "下肉片和配菜，快速翻匀裹汁出锅。"],
+ tips:["一定用土豆淀粉并提前泡，现调的糊炸不出那个壳。","醋用 9 度米醋；5 度醋酸度不够。","复炸的油量和时间不用按比例加，分批炸即可。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107651718/"]]},
+
+{id:"tangcu-paigu",hot:[5.2,"抖音","万赞"],name:"糖醋排骨",tag:"不炒糖色，冰糖加番茄沙司和腐乳汁",main:"排骨",base:1000,unit:"g",
+ groups:[
+  ["主料",[["新鲜排骨",1000,"g"],["姜",15,"g","约 4 小片"],["黄酒",13,"g","约 1 勺"],["热水",[500,600],"ml","没过排骨即可",true]]],
+  ["料汁",[["冰糖",60,"g"],["5 度白醋",30,"g"],["生抽",40,"g"],["番茄沙司",30,"g"],["红腐乳汁",10,"g"],["老抽",4,"g"]]],
+  ["收尾",[["5 度白醋",30,"g"],["熟白芝麻",10,"g"]]]],
+ steps:[
+  "排骨泡水 30 分钟去血水（不新鲜的先焯水），用厨房纸吸干，避免溅油。",
+  "料汁的 6 样调料提前拌匀。",
+  "热油大火下姜片炸到金黄，下排骨不停翻炒 6–7 分钟，炒到锅底的油由浑变清、排骨表面微黄。",
+  "沿锅边淋 {{13}}g 黄酒，炒到酒气散掉，倒入料汁翻匀。",
+  "加热水没过排骨，烧开后盖盖小火炖到软烂 ※ 炖多久文字版没写，以视频为准。",
+  "开盖大火收汁，快好时加收尾的 {{30}}g 白醋翻匀，撒芝麻出锅。"],
+ tips:["热水量看锅的大小，不用跟着排骨等比例加。","后加的那份醋是提酸味的，别和料汁一起下。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107580258/"]]},
+
+{id:"shuinen-jipai",buzz:"2026 年凭减脂餐教程再度刷屏",name:"水嫩鸡排",tag:"鸡胸肉腌一夜，煎出来不柴，可冷冻备餐",main:"鸡胸肉",base:1200,unit:"g",
+ groups:[
+  ["主料",[["鸡胸肉",1200,"g","约 5 块"]]],
+  ["腌料",[["小苏打",7,"g","不能超量"],["洋葱粉",2,"g"],["大蒜粉",2,"g"],["白胡椒粉",0.5,"g"],["味精",5,"g","可减"],["盐",3,"g"],["奥尔良腌料",20,"g"],["清水",250,"g"],["玉米淀粉",90,"g"]]]],
+ steps:[
+  "鸡胸洗净，用厨房纸彻底擦干，修掉筋膜和肥油，每块横着片成 3–4 片。",
+  "小苏打 {{7}}g、洋葱粉 {{2}}g、大蒜粉 {{2}}g、白胡椒 {{0.5}}g、味精 {{5}}g、盐 {{3}}g、奥尔良腌料 {{20}}g，加清水 {{250}}g 搅匀。",
+  "再加玉米淀粉 {{90}}g，搅到没有颗粒。",
+  "放入鸡肉翻拌 1 分钟，每片都挂上料，封保鲜膜冷藏腌一夜。",
+  "第二天取出再翻拌均匀。锅里薄薄一层油，大火烧热后下鸡排，煎到两面金黄。也可以用水煎。",
+  "吃不完的分装冷冻。"],
+ tips:["小苏打多了会发苦，换算后请用精确到 0.1g 的秤。","没有洋葱粉、大蒜粉，可用洋葱丝和蒜末代替。","不少人觉得原配方偏淡，可以蘸料吃。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107630779/"]]},
+
+{id:"luobo-niurou",name:"港式萝卜牛肉煲",tag:"柱侯酱打底，牛肋条或带筋牛腩",main:"牛肉",base:1000,unit:"g",
+ groups:[
+  ["主料",[["牛肋条或带筋牛腩",1000,"g"],["白萝卜",500,"g"]]],
+  ["小料",[["大葱",20,"g"],["大蒜",15,"g"],["姜",15,"g"],["八角",2,"个"],["干辣椒",null,"","按口味"]]],
+  ["酱料",[["柱侯酱",60,"g"],["生抽",20,"g"],["花生酱",10,"g"],["红腐乳",1,"块"],["蚝油",25,"g"],["冰糖",10,"g"]]]],
+ steps:[
+  "牛肉切两指宽的块（用高压锅就切三指宽）。葱斜切厚片，姜蒜切片。",
+  "牛肉冷水下锅焯水，什么都不放，水一开就关火，用温水冲洗干净。",
+  "锅里放正常炒菜量的油，凉油下葱姜蒜，中火煸到微微焦黄，转最小火。",
+  "下酱料和香料炒香，放入牛肉翻匀，加水 ※ 这一段文字版不完整，加水量以视频为准。",
+  "大火烧开，盖盖转最小火炖 1 个半小时。",
+  "加入白萝卜 {{500}}g，重新烧开后盖盖最小火再炖 40 分钟。"],
+ tips:["炖煮时间不随重量变化，肉多只需要换大锅。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107449187/"]]},
+
+{id:"niunan-fan",name:"牛腩饭",tag:"3 斤牛腩的大份配方，酱料也能炖鸡肉",main:"牛腩或牛肋条",base:1500,unit:"g",
+ groups:[
+  ["主料",[["牛腩或牛肋条",1500,"g"]]],
+  ["小料",[["大葱",20,"g"],["姜",100,"g","切大丁"],["蒜",50,"g","切大丁"],["高度白酒",20,"g"],["生抽",20,"g"]]],
+  ["香料",[["花椒",1,"g"],["丁香",0.3,"g","约 3 粒"],["甘草",2,"g"],["八角",2,"个"],["香叶",4,"片"]]],
+  ["酱料",[["郫县豆瓣酱",15,"g"],["红腐乳",40,"g"],["柱侯酱",45,"g"],["叉烧酱",30,"g"],["蚝油",30,"g"],["老抽",10,"g"],["鸡精",4,"g"],["白糖",[10,15],"g"]]]],
+ steps:[
+  "牛腩切两指宽的块，冷水下锅焯水，撇沫后用温水洗净。",
+  "酱料全部放一起，把腐乳碾碎搅匀。",
+  "热锅放炒菜量的油，下葱姜蒜，全程大火，煎一会儿翻两下，炒到微微金黄。",
+  "沿锅边淋白酒 {{20}}g，大火炒到酒气散掉，再沿锅边淋生抽 {{20}}g 翻匀。",
+  "倒入酱料和香料，翻炒约 2 分钟把酱炒透，下牛肉翻匀。",
+  "高压锅：电压力锅选牛羊肉档；燃气高压锅上汽后最小火压 35–40 分钟。不用高压锅就多加水，砂锅炖 2 小时以上。",
+  "开盖撇掉浮油，牛肉挑出，汤汁用漏勺滤掉香料渣后和牛肉合在一起，浇饭。"],
+ tips:["丁香换算后很少，按粒数算就行，宁少勿多。","高压锅的时间不随重量变化。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107514297/"]]},
+
+{id:"lurou-fan",name:"卤肉饭",tag:"带皮下五花，腐乳和果丹皮提味",main:"带皮五花肉",base:1000,unit:"g",
+ groups:[
+  ["主料",[["带皮下五花",1000,"g"],["洋葱",0.67,"个","约 2/3 个，切丁"],["大葱",1,"段","手掌长"],["大蒜",6,"头","※ 文字版写 6 头，可能是 6 瓣"],["鸡蛋",null,"","随意"]]],
+  ["调料",[["生抽",9,"勺"],["老抽",2,"勺"],["红腐乳",2,"块"],["冰糖",25,"g"],["鸡精",1,"茶勺"],["开水",null,"","多加一些",true]]],
+  ["香料",[["八角",1,"个"],["桂皮",null,"","指甲盖大小"],["干辣椒",1,"个"],["香叶",1,"片"],["果丹皮",0.5,"个"],["甘草",0.5,"片"]]]],
+ steps:[
+  "五花肉切 1 厘米厚片，再切 1 厘米宽的条。洋葱切丁，葱斜切块，蒜切末。",
+  "锅里不放油，直接下五花肉，中火炒 5–6 分钟，到肥肉透明、锅底的油清亮。",
+  "下洋葱炒到透明，再下葱和蒜炒 2–3 分钟。",
+  "沿锅边淋生抽 {{9}} 勺、老抽 {{2}} 勺翻匀，加足量开水。",
+  "放腐乳 {{2}} 块、冰糖 {{25}}g、香料和鸡精，大火烧开后盖盖转最小火。",
+  "鸡蛋冷水下锅，水开转中火煮 5 分钟，泡冷水 10 分钟后剥壳，竖着划几刀放进卤肉锅。",
+  "炖约 1 小时，汤面降到和肉齐平时开始搅动防糊，收到黏稠即可，不要收太干。"],
+ tips:["香料换算后是零头的，四舍五入到整个或干脆不加倍。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107434179/"]]},
+
+{id:"jigongbao",name:"鸡公煲",tag:"商用配方的家庭版，柱侯酱不能省",main:"去骨鸡腿",base:4,unit:"只",
+ groups:[
+  ["主料",[["去骨鸡腿",4,"只"]]],
+  ["腌料",[["十三香",0.5,"茶勺"],["香叶",1,"小片"],["白芷",0.5,"片","没有可不放"],["花椒",8,"粒"],["柱侯酱",2,"茶勺"],["海鲜酱",1,"茶勺"],["蚝油",3,"茶勺"],["老抽",0.5,"茶勺"],["鸡精",1,"茶勺"],["食用油",1,"茶勺"]]],
+  ["配菜",[["青椒、红椒",1,"个","各"],["芹菜",4,"根"],["洋葱",0.5,"个"],["香菇",2,"朵"],["大蒜",6,"粒"],["姜",4,"片"],["火锅底料",0.33,"小块","约 1/3 小块"],["清水",5,"勺"]]]],
+ steps:[
+  "鸡腿去骨擦干，切成 3 厘米见方的块，别切太小，炒完会缩。",
+  "加十三香、香叶、白芷、花椒，再加柱侯酱、海鲜酱、蚝油、老抽、鸡精抓匀，最后加 {{1}} 茶勺油抓匀，腌 20 分钟。",
+  "配菜切好，姜单独放。",
+  "起锅烧油，下姜和火锅底料炒化，下鸡肉中火炒约 4 分钟，不要加水。",
+  "加 {{5}} 勺清水，盖盖转小火焖 3 分钟。",
+  "倒入全部配菜，转大火翻炒 1 分钟，干锅版到这里就能吃。",
+  "想带汤的加够煮面的水，烧开后下方便面、宽粉等配菜煮熟。"],
+ tips:["火锅底料放多了会抢味，宁少勿多。","两种文字版对海鲜酱的写法不同（1 茶勺或 1 勺），这里取 1 茶勺 ※"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107642396/"]]},
+
+{id:"qingdun-niuleitiao",buzz:"网友常拿来做年夜饭硬菜",name:"清炖牛肋条",tag:"不放调料，半个苹果，吃的时候蘸料",main:"牛肋条",base:1000,unit:"g",
+ groups:[
+  ["主料",[["新鲜牛肋条",1000,"g"],["苹果",0.5,"个"],["大葱",1,"段","手掌长"],["姜",null,"","几片"],["热水",null,"","足量",true]]]],
+ steps:[
+  "牛肋条洗净，泡水 30 分钟去血水。",
+  "冷水下锅，水没开就开始撇血沫，一直撇到水开后 3–4 分钟，撇干净。",
+  "放入姜、葱和苹果，加足量热水，小火慢炖约 1 个半小时。",
+  "炖的时候不加调味料，出锅后配自己喜欢的蘸料吃。"],
+ tips:["这份是网友复述的简版，葱姜用量和切法以视频为准 ※"],
+ src:[["B 站原视频","https://www.bilibili.com/video/BV1sMbhzJEm7/"]]},
+
+{id:"xiahua-bao",name:"蒜蓉粉丝虾滑煲",tag:"先炒金银蒜酱，砂锅一层层码",main:"整份",base:1,unit:"份",
+ groups:[
+  ["主料",[["虾滑、龙口粉丝、娃娃菜、金针菇、洋葱",null,"","※ 文字版没写重量"]]],
+  ["蒜蓉酱",[["大蒜",2,"头"],["小米辣",[4,5],"根","很辣，酌减"],["小葱",3,"根"],["食用油",[50,60],"g"],["生抽",20,"g"],["蚝油",20,"g"],["味精",3,"g"],["白糖",5,"g"]]],
+  ["砂锅调味",[["白胡椒粉",0.5,"g"],["白糖",2,"g"],["味精",2,"g"],["生抽",15,"g"],["盐",2,"g"],["清水",500,"g"]]]],
+ steps:[
+  "粉丝用凉水泡上，金针菇撕开，洋葱切丝。",
+  "蒜切碎保留颗粒，清水冲洗几遍后压干。小米辣切碎，葱切葱花，取三分之二的葱花和辣椒放一起。",
+  "油 {{50}}–{{60}}g 烧到筷子下去冒泡，转中小火，下一半蒜末不停翻动炒 2–3 分钟，大部分变浅金黄就关火。",
+  "关火后下另一半蒜、葱花和小米辣拌匀，加生抽 {{20}}g、蚝油 {{20}}g、味精 {{3}}g、白糖 {{5}}g，搅匀再开大火炒到滋滋响，盛出。",
+  "小锅水将开未开时转最小火，把虾滑挤成球刮进锅里，全部下完转中火，水开后煮 2 分钟捞出。",
+  "砂锅依次铺洋葱丝、娃娃菜、金针菇、剪断挤干的粉丝，加白胡椒 {{0.5}}g、白糖 {{2}}g、味精 {{2}}g、生抽 {{15}}g、盐 {{2}}g、清水 {{500}}g。",
+  "铺上虾滑，淋上蒜蓉酱，盖盖煮到粉丝熟透 ※ 最后一步的时间文字版缺失，以视频为准。"],
+ tips:["这道菜按份数换算，不是按重量。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107719085/"]]},
+{id:"hongmen-yangpai",hot:[86.2,"B站","万播放"],name:"红焖羊排",tag:"河南馆子味的商用配方家庭版，羊肉、羊蝎子同样适用",main:"羊排",base:1500,unit:"g",
+ groups:[
+  ["主料",[["羊排",1500,"g","3 斤"],["大葱",30,"g"],["姜",30,"g"],["胡萝卜或土豆",null,"","随喜好，切大块"],["食用油",null,"","平时炒菜的 2–3 倍",true]]],
+  ["酱料",[["郫县豆瓣酱",75,"g"],["甜面酱",20,"g"]]],
+  ["调味",[["白糖",20,"g"],["鸡精",3,"g"],["蚝油",20,"g"],["老抽",7,"g"],["盐",2,"g","收干只吃肉用 2g；当火锅涮菜用 5–6g"]]],
+  ["香料",[["桂皮",2,"g"],["香叶",3,"片"],["草果皮",1,"个"],["良姜",2,"g"],["白蔻",3,"个"],["白芷",5,"g"],["毛砂仁",3,"g"],["丁香",3,"粒"],["白胡椒粒",3,"g"],["花椒粒",3,"g"],["甘草",2,"g"],["孜然粒",10,"g"],["干辣椒",10,"g"]]]],
+ steps:[
+  "羊排清水泡 30 分钟去血水和部分膻味，捞出控水，用厨房纸吸干。",
+  "姜 {{30}}g 切片，葱 {{30}}g 斜切段。全部香料用清水泡 3 分钟去灰和苦涩，沥干。胡萝卜切大块。",
+  "锅里多放油，油温热后下葱姜，大火炒香。",
+  "转最小火，下豆瓣酱 {{75}}g 和甜面酱 {{20}}g，慢慢炒到明显出红油，再下香料翻匀。",
+  "下羊排，调回最大火翻匀，保持大火炒 2 分钟。",
+  "加开水，放白糖 {{20}}g、鸡精 {{3}}g、蚝油 {{20}}g、老抽 {{7}}g 和盐，烧开后小火焖炖 ※ 焖多久、何时下胡萝卜，文字版缺失，以视频为准。",
+  "收干汤汁直接吃，或者留汤当火锅涮菜。"],
+ tips:["炒酱必须最小火，火大了豆瓣酱发苦。","香料种类多，换算后不足 1 粒 / 1 片的按 1 算，丁香宁少勿多。","买不齐香料时，白芷、孜然、花椒、干辣椒优先保留（这是我的建议，不是视频里说的）。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107448423/"],["B 站原视频","https://www.bilibili.com/video/BV1uvD1Y5E4Q/"]]},
+
+{id:"jiang-niurou",name:"酱牛肉",tag:"家里用了十几年的配方，草果不能省，汤留作老汤",main:"牛肉",base:1500,unit:"g",
+ groups:[
+  ["主料",[["牛肉（牛腱子为佳）",1500,"g","3 斤"]]],
+  ["香料",[["大葱",1,"根","切段"],["姜",6,"片"],["干辣椒",3,"根"],["八角",3,"个"],["大草果",1,"个","拍开或剪开"],["花椒",20,"粒","二十多粒"],["香叶",4,"片"]]],
+  ["调料",[["黄豆酱",1,"碟","家里吃饭的小碟"],["生抽",1,"碗"],["料酒",0.25,"碗"],["冰糖",2,"块","大一点的"],["盐",1,"平勺","按口味"],["热水",null,"","没过牛肉",true]]]],
+ steps:[
+  "牛肉泡水 2 小时去血水。",
+  "冷水下锅焯水，水开后煮 2 分钟捞出，用温水冲净浮沫。",
+  "锅里油多一些，下葱段和姜片。先把葱拨到锅边，姜片煎到四周发黄，再把葱放回中间煎焦。",
+  "下黄豆酱 {{1}} 碟、生抽 {{1}} 碗、料酒 {{0.25}} 碗，倒入全部香料，加冰糖 {{2}} 块和盐。",
+  "料汁烧开后下牛肉，加热水没过，盖盖烧开转小火炖 2 小时。喜欢硬一点炖 1.5 小时；用高压锅选蹄筋档，不超过 20 分钟。",
+  "筷子能轻松扎进去、拔出来略有阻力就是好了。",
+  "牛肉捞出，汤滤掉料渣，把肉泡回汤里，冷藏泡一夜。吃时切片，淋一点原汤。",
+  "剩下的汤冷冻保存，下次再卤时加进去就是老汤。"],
+ tips:["碟和碗是家用餐具的量，不是精确克数，按自己家的碗等比例放即可。","肉块多了炖的时间不变，只要汤能没过肉。"],
+ src:[["小红书文字版","https://www.xiaohongshu.com/explore/6a0c2752000000003700ef61"],["B 站原视频","https://www.bilibili.com/video/BV1xE4m1d73b/"]]},
+
+{id:"xihongshi-niunan",hot:[85.5,"抖音","万赞"],name:"西红柿土豆炖牛腩",tag:"西红柿比牛腩还多，炖两个半小时",main:"牛腩",base:1250,unit:"g",
+ groups:[
+  ["主料",[["牛腩",1250,"g"],["西红柿",1300,"g","6–7 个，去皮切丁"],["土豆",null,"","若干，切块"],["洋葱",0.5,"个","切丁"]]],
+  ["小料",[["大葱",1,"段","手掌长"],["姜",[5,6],"片"],["八角",2,"个"],["干辣椒",null,"","适量"],["高度白酒",null,"","焯水用，适量"]]],
+  ["调料",[["生抽",5,"勺"],["老抽",1,"勺"],["蚝油",0.5,"勺"],["味精",1,"勺"],["糖、盐",null,"","最后按口味"],["热水",null,"","没过牛肉",true]]]],
+ steps:[
+  "牛腩切小块，冷水下锅，加高度白酒焯水，煮开后用温水冲洗干净。",
+  "西红柿去皮切丁，大葱斜切段。",
+  "油多一些，凉油下葱姜，大火把葱炒散、炒出焦边，下八角和干辣椒炒香，再下牛肉。",
+  "把牛肉的水汽炒干，约 2 分钟。加生抽 {{5}} 勺翻匀。",
+  "倒入全部西红柿，炒碎炒出沙，加老抽 {{1}} 勺、蚝油 {{0.5}} 勺炒匀。",
+  "煮开后加热水，小火炖 2 小时。",
+  "加入土豆块和洋葱丁，再炖半小时。",
+  "大火收汁，加味精 {{1}} 勺，按口味加糖和盐，撒葱花或香菜。"],
+ tips:["盐放在最后，前面只靠生抽打底。","另一份文字版用的是 1 斤牛腩配 3 个西红柿、炖 1.5–2 小时，量小可以参考。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107577814/"]]},
+{id:"sui-congshao-doufu",hot:[212,"B站","万播放"],chef:"隋坡",name:"葱烧豆腐",tag:"先煸葱出葱油，再用葱油煎豆腐，葱分两次下",main:"豆腐",base:700,unit:"g",
+ groups:[
+  ["主料",[["豆腐",700,"g","切三角厚片"],["葱白",200,"g","只用葱白"]]],
+  ["调料",[["食用油",100,"g"],["大料（八角）",2,"个"],["酱油",50,"g"],["盐",5,"g"],["味精",2,"g"],["水淀粉",10,"g"],["葱油",10,"g","没有可不放"],["清水",null,"","没过豆腐",true]]]],
+ steps:[
+  "豆腐切三角厚片。葱白从中间劈成两半，斜切成约 6 毫米宽的葱段。",
+  "起锅烧油 {{100}}g，放大料，下一半的葱，开大火把葱煸黄，出浓葱香后关小火。",
+  "豆腐顺着锅边倒入，把葱挤到一旁，中火把豆腐两面煎到金黄。",
+  "先淋酱油 {{50}}g，再加水没过豆腐，放盐 {{5}}g、味精 {{2}}g，小火咕嘟 3 分钟。",
+  "倒入剩下的一半生葱，勾芡，淋葱油 {{10}}g 出锅。"],
+ tips:["一定先放酱油后加水：酱油遇高温才出香，刚煎完的豆腐也吸味。","盐先少放，尝过再补。"],
+ src:[["隋卞做菜文字版导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-culiu-baicai",chef:"隋坡",name:"醋溜白菜",tag:"只用白菜帮，碗汁一次调好，全程大火",main:"白菜帮",base:500,unit:"g",
+ groups:[
+  ["主料",[["白菜帮",500,"g","去叶去根，斜切片"],["木耳",20,"g","焯水"],["蒜（炝锅）",20,"g"],["食用油",50,"g"]]],
+  ["碗汁",[["醋",60,"g"],["老抽",10,"g"],["盐",5,"g"],["味精",2,"g"],["白糖",2,"g"],["淀粉",20,"g","※ 这个量在视频评论里有争议"],["红辣椒",10,"g"],["蒜",10,"g"],["香油",10,"g"]]]],
+ steps:[
+  "白菜帮去掉菜叶和根部，斜刀片成片。木耳焯水。",
+  "碗汁的 9 样全部调在一个碗里搅匀。",
+  "起锅烧油 {{50}}g，下蒜 {{20}}g 煸黄。",
+  "倒入白菜和木耳，全程大火翻炒，到白菜变软、呈半透明。",
+  "碗汁搅匀后倒入，等芡汁变浓、白菜入味就出锅。"],
+ tips:["淀粉 20g 偏多，怕糊可以先放一半，看浓稠度再补（这是我的建议）。","一次炒的量别太大，家用灶火力不够会出水。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107444132/"],["隋卞做菜文字版导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-fanqie-niunan",hot:[404.2,"B站","万播放"],chef:"隋坡",name:"番茄炖牛腩",tag:"牛腩先高压锅压软，再和番茄合炖 10 分钟",main:"牛腩（牛肋腩）",base:1000,unit:"g",
+ groups:[
+  ["主料",[["牛腩",1000,"g","选带筋带油的牛肋腩，块切大些"],["西红柿",700,"g","切块"],["番茄酱",50,"g"]]],
+  ["小料",[["葱",100,"g","切眉毛葱"],["姜",30,"g"],["大蒜",6,"颗"],["八角",4,"个"],["桂皮",1,"个"],["料酒、花椒",null,"","焯水和压肉用，适量"],["香菜",null,"","一把"]]],
+  ["调料",[["油",50,"g"],["盐",6,"g"],["糖",15,"g"],["味精",1,"g"]]]],
+ steps:[
+  "牛腩冷水下锅，加料酒、大葱、姜、花椒焯水，边煮边撇浮沫。煮肉的汤留着。",
+  "牛腩放进高压锅，加煮肉的汤、料酒、姜、大葱、大料，炖肉模式压 30 分钟。",
+  "西红柿切块，葱切眉毛葱，姜蒜备好。",
+  "热锅冷油 {{50}}g，下葱姜蒜，中小火炒香，炒到大葱金黄。",
+  "下番茄和番茄酱 {{50}}g，再下牛肉和牛肉汤，加盐 {{6}}g，炖 10 分钟。",
+  "尝味调整，加糖 {{15}}g、味精 {{1}}g，撒香菜出锅。"],
+ tips:["糖什么时候下，文字版没写清，我放在最后调味一步 ※","高压锅 30 分钟不随重量变。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107421169/"],["YouTube 原视频","https://www.youtube.com/watch?v=tj_vTYIpQdE"]]},
+
+{id:"sui-jiang-niurou",hot:[208.6,"B站","万播放"],chef:"隋坡",name:"酱牛肉（隋坡版）",tag:"干黄酱先腌后煮，高压锅压到软烂",main:"牛腱子",base:2000,unit:"g",
+ groups:[
+  ["主料",[["牛腱子",2000,"g","4 斤"]]],
+  ["腌肉",[["生抽（原版用大豆酱油）",70,"g"],["味极鲜（原版用鲜味酱油）",30,"g"],["盐",30,"g"],["干黄酱",30,"g","用料酒澥开"],["料酒",null,"","若干"],["八角",4,"个"],["桂皮",20,"g"],["小茴香",10,"g"],["香叶",2,"片"],["葱",0.5,"根"],["姜",50,"g","可多放"]]],
+  ["煮肉的汤",[["葱",0.5,"根"],["姜",50,"g"],["八角",2,"个"],["香叶",2,"片"],["小茴香",10,"g"],["桂皮",20,"g"],["干黄酱",50,"g"],["酱油",50,"g","颜色浅就再加"],["冰糖",20,"g"],["水",null,"","能盖住牛肉",true]]]],
+ steps:[
+  "用叉子在牛肉上多戳些孔，方便入味。",
+  "加腌肉的全部用料。干黄酱下去后，把料酒浇在酱上用手抓开，再加葱姜，把牛肉抓匀腌制，最少 2 小时，最好一天一夜（另一份 6 斤版文字稿的说法）。",
+  "另起锅放油，下半根葱、姜 {{50}}g、八角、香叶、小茴香、桂皮，把葱姜炒出虎皮色。",
+  "加干黄酱 {{50}}g、酱油 {{50}}g，小火把黄酱澥开，加水到能盖住牛肉，汤色应是深褐色。",
+  "水开后加冰糖 {{20}}g。尝一下汤，略咸一点就对了。",
+  "连汤带肉倒入电压力锅压 40 分钟，再焖半小时（6 斤版文字稿的说法）。"],
+ tips:["这份文字版的用料表和步骤里的数字有出入（盐、干黄酱的总量），这里按步骤里的数字。","和菜单里村驴的酱牛肉是两种路子：村驴用黄豆酱加生抽明火炖，隋坡用干黄酱先腌再压。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107789347/"]]},
+
+{id:"sui-gongbao-jiding",hot:[161.7,"B站","万播放"],chef:"隋坡",name:"宫保鸡丁",tag:"鸡腿肉打葱姜水，碗芡一次调好",main:"去骨鸡腿肉",base:500,unit:"g",
+ groups:[
+  ["主料",[["去骨鸡腿肉",500,"g","切 2.5 厘米丁"],["花生米、干辣椒、花椒",null,"","适量"],["葱、姜、蒜",null,"","适量"]]],
+  ["腌肉",[["盐",3,"g"],["味精",1,"g"],["胡椒粉",1,"g"],["葱姜水",100,"g","2 两，分两三次打入"],["淀粉",15,"g"],["食用油",null,"","封油，少许"]]],
+  ["碗芡",[["酱油",20,"g"],["绵白糖",30,"g"],["香醋",30,"g","※ 整理者比原版多加了 10g"],["老抽",1,"g"],["味精",1,"g"],["花雕酒",2,"g"],["水淀粉",10,"g"]]]],
+ steps:[
+  "鸡腿去骨，用刀背轻砸，切成手指头大小的丁。",
+  "先加盐 {{3}}g、味精 {{1}}g、胡椒粉 {{1}}g，再把葱姜水 {{100}}g 分两三次打进去，搅到粘手。",
+  "加淀粉 {{15}}g 再搅匀，最后淋油封住。",
+  "调碗芡：酱油 {{20}}g、绵白糖 {{30}}g、香醋 {{30}}g、老抽 {{1}}g、味精 {{1}}g、花雕 {{2}}g 搅匀，水淀粉 {{10}}g 另放。",
+  "锅里放底油，下鸡丁煸到变色，再下花椒和干辣椒，然后下姜蒜。",
+  "下葱，倒入碗芡，大火快炒，别翻太久，醋味会跑。",
+  "看浓稠度用水淀粉勾芡，下花生米翻匀出锅。"],
+ tips:["这份是网友在隋坡做法上简化过的：先炒鸡丁后下辣椒花椒，水淀粉单独后放，对新手更稳。","一定先放盐再打葱姜水，肉才吃得进水。"],
+ src:[["下厨房文字版（改编）","https://m.xiachufang.com/recipe/107357814/"]]},
+
+{id:"sui-qiangguo-mian",hot:[415.5,"B站","万播放"],buzz:"被称为隋卞做最有代表性的一道",chef:"隋坡",name:"炝锅面",tag:"葱要多，酱油烹在番茄上，只放盐就很香",main:"整份",base:1,unit:"份",
+ groups:[
+  ["主料",[["鸡蛋",3,"个"],["西红柿",[1,2],"个","切小丁"],["大葱",1,"根","至少一整根，取葱白"],["面条",null,"","一人份"]]],
+  ["调料",[["八角",1,"个"],["酱油",10,"g"],["盐",null,"","按口味"],["开水",null,"","够煮面",true]]]],
+ steps:[
+  "西红柿切小丁，鸡蛋打散，葱白斜切成眉毛葱，切大一点不容易糊。",
+  "油多一些、油温高一些炒鸡蛋，定型后捣碎盛出，炒老一点没关系。",
+  "小火放油，下葱白和八角，把葱煸黄。",
+  "下番茄，烹入酱油 {{10}}g，加开水，倒回鸡蛋，大火滚 3 分钟，加盐调味。",
+  "下面条，煮熟即可。"],
+ tips:["这道按份数换算。","两份文字版的西红柿用量不同（1 个或 2 个）。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107572993/"],["B 站原视频","https://www.bilibili.com/video/BV1e8411u7uB/"]]},
+{id:"fengwei-qiezi",name:"风味茄子",tag:"炸茄子裹糖醋汁，白糖白醋 1:1",main:"茄子",base:500,unit:"g",
+ groups:[
+  ["主料",[["茄子",500,"g"],["玉米淀粉",70,"g","下锅前再抓"],["炸油",null,"","宽油",true]]],
+  ["小料",[["大蒜",6,"瓣","拍扁切末"],["大葱",1,"段","切葱花"],["香菜梗",10,"g","切段"],["干辣椒段、干花椒",null,"","少量"],["白芝麻",null,"","适量"]]],
+  ["碗汁",[["白糖",30,"g"],["白醋",30,"g"],["生抽",20,"g"],["蚝油",15,"g"],["香油",5,"g"],["盐",3,"g"]]]],
+ steps:[
+  "茄子竖着切成四瓣，片掉中间的瓤，斜刀切菱形块，清水泡 5 分钟。",
+  "碗汁的 6 样调匀：白糖 {{30}}g、白醋 {{30}}g、生抽 {{20}}g、蚝油 {{15}}g、香油 {{5}}g、盐 {{3}}g。",
+  "茄子沥干，临下锅前再抓匀玉米淀粉 {{70}}g，下油锅炸到外壳定型、金黄，捞出 ※ 油温和时间文字版没写。",
+  "锅里留底油，先不开火，用余温把葱、蒜、辣椒、花椒煸香。",
+  "不开火倒入碗汁，再开大火熬到浓稠。",
+  "倒入茄子、香菜梗和白芝麻，快速翻匀出锅。"],
+ tips:["淀粉不要提前抓好放着，茄子出的水会把淀粉浸透，炸的时候崩油很厉害。","醋一定用白醋，其他醋熬汁时酸味会跑掉。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107457629/"],["下厨房文字版（勺量）","https://m.xiachufang.com/recipe/107394081/"]]},
+
+{id:"cl-zhajiangmian",name:"炸酱面",tag:"三种酱加香菇丁，淀粉水收稠",main:"偏肥五花肉",base:300,unit:"g",hot:[15.3,"抖音","万赞"],
+ groups:[
+  ["主料",[["偏肥五花肉",300,"g","肥瘦分开切丁"],["香菇",5,"朵","切丁"],["大葱",1,"根","葱白"],["大蒜",5,"瓣","切末"],["姜",null,"","几片"],["八角",2,"个"],["面条",null,"","按人数"]]],
+  ["酱",[["干黄酱",1,"勺","※ 文字版写「干黄酱（郫县豆瓣酱）」，哪个为准不确定"],["甜面酱",1.5,"勺"],["黄豆酱",1,"勺"],["清水",2,"勺"],["陈醋",1,"勺"],["白糖",1,"茶勺","满满一茶勺"],["蚝油",1,"勺"],["老抽",1,"勺"],["鸡精",2,"茶勺"]]],
+  ["收尾",[["玉米淀粉",1,"勺","一勺尖"],["清水（调淀粉）",0.33,"碗","约 1/3 碗"],["芝麻香油",0.5,"勺"]]]],
+ steps:[
+  "肉肥瘦分开切丁，香菇切丁，葱切葱花，蒜切末。",
+  "酱的 9 样调匀。淀粉和 1/3 碗清水另调一碗。",
+  "锅里多放油，凉油下姜片和八角，中火慢慢炸到姜片发干，都捞出。",
+  "下肥肉丁，大火煸到金黄，再下瘦肉丁炒到变色。",
+  "下蒜末和一半葱花炒香，倒入香菇丁炒匀。",
+  "倒入调好的酱，冒鱼眼泡时倒淀粉水，转最小火熬 10 分钟。",
+  "下剩下的葱花和香油 {{0.5}} 勺，关火焖 5 分钟。"],
+ tips:["熬酱全程最小火，勤搅，容易糊底。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107477135/"]]},
+
+{id:"cl-mapo-doufu",name:"麻婆豆腐",tag:"牛肉末炒酥，水淀粉分三次",main:"豆腐",base:500,unit:"g",
+ groups:[
+  ["主料",[["豆腐",500,"g","切一指宽"],["牛肉末",100,"g"],["大葱",null,"","葱白、葱绿分开"],["姜末、蒜末",null,"","适量"]]],
+  ["调料",[["豆瓣酱",1,"勺","切碎"],["豆豉",0.67,"勺","约 2/3 勺，切碎"],["料酒",3,"g"],["生抽",3,"g"],["辣椒面",7,"g"],["花椒",null,"","焙香碾成粉"],["老抽、盐",null,"","焯豆腐用，少许"]]],
+  ["水淀粉",[["淀粉",5,"g"],["清水",40,"g"]]]],
+ steps:[
+  "花椒在干锅里焙出香味，碾成花椒粉。",
+  "豆腐切一指宽的块，水里加老抽和盐焯一下。",
+  "开小火炒牛肉末（火大了炒不散），加姜末、料酒 {{3}}g、生抽 {{3}}g，炒到带点焦，盛出。",
+  "多放油，油热下姜蒜末大火炒香，转小火下切碎的豆瓣酱和豆豉，炒香后下辣椒面 {{7}}g ※ 这之后的调味和加水量文字版不完整，以视频为准。",
+  "加水烧开，下豆腐和葱白，煮到汤剩三分之一，尝咸淡决定要不要加盐。",
+  "水淀粉分三次勾：第一次后下牛肉末，第二次后下葱绿，最后撒花椒粉。"],
+ tips:["这份文字版缺口较多，建议对照视频做。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107628056/"]]},
+
+{id:"sui-huiguorou",chef:"隋坡",name:"回锅肉",tag:"煸到打卷出油，豆瓣豆豉甜面酱",main:"五花肉",base:500,unit:"g",hot:[174.3,"B站","万播放"],
+ groups:[
+  ["主料",[["五花肉",500,"g"],["青蒜（或大葱）",100,"g"],["小米辣",2,"个"],["花椒",10,"粒","煮肉用"]]],
+  ["调料",[["豆瓣酱",30,"g"],["豆豉",10,"g"],["甜面酱",15,"g"],["白糖",3,"g"],["味精",1,"g"]]]],
+ steps:[
+  "五花肉冷水下锅，加花椒煮到筷子能扎透，放凉后切薄片 ※ 煮多久文字版没写。",
+  "肉片下锅，煸到出油、打卷，把多余的油倒出来。",
+  "把肉拨到一边，下豆瓣酱 {{30}}g、豆豉 {{10}}g，开大火翻炒均匀。",
+  "下甜面酱 {{15}}g、味精 {{1}}g、白糖 {{3}}g，炒匀。",
+  "下青蒜和小米辣，炒到青蒜变绿就出锅。"],
+ tips:["不另外放盐，咸味全靠豆瓣酱和豆豉。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107320540/"],["B 站原视频","https://www.bilibili.com/video/BV1eA4m1L7QY/"]]},
+
+{id:"sui-yuanbaicai",hot:[135.5,"B站","万播放"],chef:"隋坡",name:"炝炒圆白菜",tag:"花椒干辣椒炝锅，碗汁沿锅边下",main:"整份",base:1,unit:"份",
+ groups:[
+  ["主料",[["圆白菜",null,"","※ 文字版没写重量，约半颗"],["干辣椒",null,"","适量，先用凉油润一下"],["花椒",2,"g"]]],
+  ["碗汁",[["生抽",22,"g","※ 文字版此处缺字"],["米醋",20,"g"],["糖",5,"g"],["味精",1,"g"],["盐",2,"g"]]]],
+ steps:[
+  "碗汁的 5 样搅匀。",
+  "锅里先加油润锅，油热后倒出，重新加油，关小火下花椒 {{2}}g 炸香。",
+  "干辣椒用凉油润过后下锅，变色就倒入圆白菜。",
+  "全程大火，圆白菜变色后沿锅边倒入碗汁，炒熟出锅。"],
+ tips:["这道按份数换算。"],
+ src:[["隋卞做菜文字版导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"db-dafanbao",chef:"老东北美食",name:"东北大饭包",tag:"鸡蛋酱、土豆、米饭，用菜叶包着吃",main:"整份",base:1,unit:"份",
+ groups:[
+  ["主料",[["土豆",2,"个","切块蒸熟"],["鸡蛋",3,"个","不用打散"],["黄豆酱",150,"g","3 两"],["米饭",null,"","先蒸上"],["生菜（或白菜叶）",null,"","包饭用"]]],
+  ["小料",[["葱末、姜末",null,"","各一点"],["香菜末、葱花",null,"","适量"],["鸡精",null,"","少许"],["食用油",null,"","适量"]]]],
+ steps:[
+  "先蒸米饭，土豆切块上锅蒸熟。",
+  "锅里加油，鸡蛋直接倒入，大力快速搅成小颗粒。",
+  "下葱末、姜末，倒入黄豆酱 {{150}}g 炒香，太干就再补点油，加鸡精。",
+  "菜叶摊开，放米饭、土豆、鸡蛋酱，撒香菜末和葱花，包起来吃 ※ 包法文字版没写，这是常规吃法。"],
+ tips:["这是我找到的唯一一份标明出自老东北美食的文字菜谱，用的是家常量，没有精确克数。"],
+ src:[["下厨房文字版","https://m.xiachufang.com/recipe/107386196/"]]},
+
+{id:"db-hongshaorou",chef:"老东北美食",name:"红烧肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[170.8,"B站","万播放"],groups:[],steps:[],
+ tips:["老东北美食在 B 站播放最高的教学短片之一，另有长视频版本（东北老式红烧肉、红烧肉炖土豆）。","我没找到按这条视频整理、带克数的文字版，所以这里不列用料，免得张冠李戴。看完视频把用料发给我，我可以补成可换算的菜谱。"],
+ src:[["B 站长视频","https://www.bilibili.com/video/BV1Bf4y1S7af/"],["B 站主页","https://space.bilibili.com/514273130/"]]},
+
+{id:"db-rouduan",chef:"老东北美食",name:"青椒肉段（溜肉段）",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["老东北美食有「东北地道的青椒肉段」实操教学和溜肉段短片。","同样没找到带克数的文字版。"],
+ src:[["B 站主页","https://space.bilibili.com/514273130/"]]},
+
+{id:"db-niuroumian",chef:"老东北美食",name:"红烧牛肉面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[12.5,"B站","万播放"],groups:[],steps:[],
+ tips:["视频从选肉讲到炖肉配方，约 11 分钟。","没找到带克数的文字版。"],
+ src:[["B 站主页","https://space.bilibili.com/514273130/"]]},
+{id:"suanbao-yu",name:"蒜爆鱼",tag:"鱼煮熟不煎不炸，抹蒜汁再泼花椒辣椒油",main:"鲤鱼",base:1000,unit:"g",buzz:"村驴的爆款作品之一",
+ groups:[
+  ["主料",[["鲤鱼",1000,"g","1 条，约 2 斤"],["大蒜",120,"g","约两头半，打碎"],["香菜段",null,"","少许"]]],
+  ["煮鱼",[["葱段、姜片、料酒、白胡椒粉、盐",null,"","少许"],["水",null,"","没过鱼",true]]],
+  ["碗汁",[["蚝油",150,"g","※ 文字版原数，偏多，可先放一半"],["9 度米醋",30,"g"],["陈醋",10,"g"],["白糖",40,"g"],["鸡精",10,"g"],["味精",5,"g"],["生抽（或蒸鱼豉油）",20,"g"],["香油",10,"g"],["老抽",10,"g"]]],
+  ["料油",[["花椒",5,"g"],["麻椒",5,"g"],["干辣椒丝",20,"g"],["食用油",null,"","比炒菜多"]]]],
+ steps:[
+  "大蒜 {{120}}g 用料理机打碎。",
+  "碗汁的 9 样调匀，和蒜末充分拌在一起。",
+  "鱼洗净，在背部改刀，方便入味。",
+  "锅里放葱段、姜片、料酒、白胡椒粉、盐，放入鱼，加水没过，煮熟后捞出控干 ※ 煮多久文字版没写；常见做法是水保持微开煮几分钟再焖，以视频为准。",
+  "把蒜汁抹满鱼的全身。",
+  "起锅烧油到七成热，先下花椒 {{5}}g、麻椒 {{5}}g 炸香，再下干辣椒丝 {{20}}g，炸到辣椒微微发糊。",
+  "把料油泼在鱼身上，撒香菜。"],
+ tips:["换算按鱼的重量；鱼小了煮的时间也要短，煮过头肉会散。","蒜是生的，靠热油激香，油温不够蒜味会冲。"],
+ src:[["下厨房文字版","https://www.xiachufang.com/recipe/107697209/"]]},
+
+{id:"cl-congshao-dapai",name:"葱烧大排",tag:"姜汁蛋液腌肉，煎香后和 300g 小葱一起炖",main:"通脊或梅花肉",base:500,unit:"g",
+ groups:[["主料",[["通脊肉 / 梅花肉",500,"g","切 6–7 片，敲松"],["小葱",300,"g","葱白葱绿分开"],["姜",15,"g","另备 10g 取汁腌肉"]]],
+  ["腌肉",[["姜（拍碎取汁）",10,"g"],["料酒",30,"g"],["生抽",20,"g"],["鸡蛋",1,"个"],["玉米淀粉",40,"g"]]],
+  ["碗汁",[["生抽",40,"g"],["老抽",25,"g"],["白糖",15,"g"],["十三香",1,"g"],["鸡精",3,"g"],["清水",300,"g","涮碗后一起倒入"]]]],
+ steps:["肉切成 6–7 片，用刀背敲松。姜 {{10}}g 拍碎，加料酒 {{30}}g 抓出汁，滤进肉里。","加生抽 {{20}}g、鸡蛋、玉米淀粉 {{40}}g 抓匀，腌 10 分钟。","大火把大排两面煎到金黄，盛出。","原锅下姜 {{15}}g 煎到发黑，先下葱白再下葱绿炒香。","把大排铺在葱上，淋入碗汁，用 {{300}}g 清水涮碗后倒进锅。","开锅后转中火炖 10 分钟，中途翻一次面。"],
+ tips:["炖 10 分钟不随重量变；肉片更厚就多炖几分钟。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107738122/"]]},
+
+{id:"cl-gongbao-jiding",name:"宫保鸡丁（村驴版）",tag:"鸡腿肉上浆封油，最大火滑炒 1 分钟",main:"鸡腿肉",base:480,unit:"g",
+ groups:[["主料",[["鸡腿肉",480,"g","去骨切丁"],["葱白",90,"g"],["花生米",60,"g"],["蒜",25,"g"],["姜",5,"g"],["花椒、干辣椒",null,"","适量"]]],
+  ["上浆",[["盐",2,"g"],["玉米淀粉",25,"g"],["清水",20,"g"],["油",null,"","抓匀后封一层"]]],
+  ["宫保汁",[["宫保汁",null,"","※ 各调料克数我没查到，以视频为准"]]]],
+ steps:["鸡丁加盐 {{2}}g、玉米淀粉 {{25}}g、清水 {{20}}g 抓匀，再拌一点油封住。","花椒用最小火炸香后捞出不要；干辣椒下锅炒到快糊没糊，捞出备用。","开最大火，下鸡丁滑炒约 1 分钟，下蒜 {{25}}g、姜 {{5}}g。","淋入宫保汁翻匀，最后下葱白 {{90}}g、花生米 {{60}}g 和炒过的辣椒，出锅。"],
+ tips:["宫保汁的配比文字版摘要里没有 ※，这道菜目前只能换算主料和上浆部分。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107402958/"]]},
+
+{id:"cl-jirou-wanzi",name:"鸡肉丸子",tag:"肉和葱姜水都先冷冻，绞肉机分次打上劲",main:"鸡胸肉",base:500,unit:"g",
+ groups:[["主料",[["鸡胸肉",500,"g","切片冷冻 2 小时"],["蛋清",1,"个"],["葱姜蒜水",80,"g","冷冻 2 小时，分 3 次加"]]],
+  ["调味",[["木薯淀粉",20,"g"],["盐",6,"g"],["胡椒粉",1,"g"],["白糖",5,"g"],["小苏打",3,"g"],["味精",5,"g"]]]],
+ steps:["鸡胸肉切片，和葱姜蒜水 {{80}}g 分别冷冻 2 小时。","肉片放进绞肉机，每次打 3 秒，打 10 次。加蛋清和调味料。","葱姜蒜水分 3 次加入，每加一次打 10 下；最后每次 5 秒，再打 8 次。","锅里的水烧到锅底起小泡就关火，把丸子挤进去。","全部下完再开火，丸子浮起来就捞出。"],
+ tips:["冷冻是为了打的时候肉不升温，丸子才弹。","绞肉机的次数是按 500g 说的，量大要分批打。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107454651/"]]},
+
+{id:"cl-zhengcai",name:"蒸菜",tag:"菜先拌油再裹粉，开水上锅蒸 4 分钟",main:"蔬菜（茼蒿＋土豆＋胡萝卜）",base:450,unit:"g",
+ groups:[["主料",[["茼蒿",250,"g"],["土豆",100,"g","擦丝"],["胡萝卜",100,"g","擦丝"]]],
+  ["裹粉",[["油",3,"勺","三种菜各拌 1 勺"],["小麦淀粉",300,"g","三种菜各约 100g"]]]],
+ steps:["三种菜分开处理，洗净后尽量沥干。","每种菜先拌 1 勺油，再各拌约 {{100}}g 小麦淀粉，抖散。","水烧开后先关火，把菜铺进蒸屉。","重新开火，冒汽后盖盖，大火蒸 4 分钟。"],
+ tips:["4 分钟不随量变；量大就分层或分锅蒸，别堆厚。","蘸料文字版没给 ※，常见是蒜泥、醋、香油。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107434182/"]]},
+
+{id:"cl-xin-sanxian",name:"新三鲜",tag:"番茄先炒出沙，再下包菜和辣椒大火炒",main:"包菜",base:450,unit:"g",
+ groups:[["主料",[["包菜",450,"g"],["辣椒",80,"g"],["番茄",2,"个"],["蒜",4,"粒"]]],
+  ["调味",[["生抽",20,"g"],["蚝油",20,"g"],["白糖",3,"g"],["盐",2,"g"],["味精",3,"g"]]]],
+ steps:["包菜撕块，辣椒切块，番茄切丁，蒜切片。","热油下蒜和番茄，炒到番茄出沙。","下包菜和辣椒，开大火翻炒。","加生抽 {{20}}g、蚝油 {{20}}g、白糖 {{3}}g、盐 {{2}}g、味精 {{3}}g，炒匀出锅。"],
+ tips:[],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107693929/"]]},
+
+{id:"cl-lu-zhugan",name:"卤猪肝",tag:"先腌 3–6 小时，凉水下锅小火煮",main:"猪肝",base:1000,unit:"g",
+ groups:[["主料",[["猪肝",1000,"g"]]],
+  ["腌制",[["小葱",10,"g"],["姜",20,"g"],["盐",20,"g"],["花椒",3,"g"],["八角",2,"g"],["料酒",30,"g"]]],
+  ["煮制",[["水",1500,"g"],["盐",7.5,"g"],["小葱",10,"g"],["姜",10,"g"],["花椒",3,"g"],["八角",2,"g"],["干辣椒",8,"g"],["香叶",1,"片"],["鸡精",3,"g"]]]],
+ steps:["猪肝加腌制用料抓匀，腌 3–6 小时。","焯水：水一开就关火，捞出洗净。","另起锅，猪肝和煮制用料凉水下锅，水开后转小火煮熟 ※ 煮多久文字版没写，以视频为准；筷子扎进去不出血水才算熟。","泡在汤里放凉再切片。"],
+ tips:["猪肝必须煮熟透再吃。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107692475/"]]},
+
+{id:"cl-jintou-banao",name:"筋头巴脑",tag:"三种酱打底，二锅头去腥，慢炖到软糯",main:"牛筋头巴脑",base:1000,unit:"g",
+ groups:[["主料",[["牛筋头巴脑",1000,"g","2 斤"]]],
+  ["酱料",[["豆瓣酱",1,"勺"],["黄豆酱",1,"勺"],["番茄酱",1,"勺"],["二锅头",2,"勺"],["生抽",2,"勺"],["料酒",2,"勺"],["蚝油",0.5,"勺"],["冰糖",[5,6],"粒"]]],
+  ["香料",[["大葱",2,"段"],["姜",[4,5],"片"],["蒜",4,"瓣"],["香叶",3,"片"],["八角",2,"个"],["草果皮",1,"个"],["桂皮",1,"g"],["白芷",2,"g"]]]],
+ steps:["筋头巴脑切块，焯水洗净。","炒香葱姜蒜和香料，下三种酱炒出红油。","下肉翻匀，烹入二锅头、料酒，加生抽、蚝油、冰糖。","加开水没过肉，小火炖到软糯 ※ 炖多久文字版被截断，以视频为准。"],
+ tips:["用料是“勺”，原帖没说勺多大，按家用汤勺理解 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107697161/"]]},
+
+{id:"cl-jiang-dagu",name:"酱大骨（猪颈骨）",tag:"泡水焯透，炖半小时加盐，再炖再焖",main:"猪颈骨",base:1000,unit:"g",
+ groups:[["主料",[["猪颈骨",1000,"g","2 斤，先泡半小时"]]],
+  ["配料",[["姜",15,"g"],["胡萝卜",25,"g"],["洋葱",20,"g"],["香菜",1,"根"],["盐",3,"茶勺","炖半小时后加"]]],
+  ["酱料",[["酱料",null,"","※ 我没查到这部分的配比，以视频为准"]]]],
+ steps:["猪颈骨泡水半小时，冷水下锅焯水，水开后再煮 3 分钟，洗净。","加配料和酱料，小火炖半小时，加盐 {{3}} 茶勺。","再炖半小时，关火焖半小时。"],
+ tips:["三个“半小时”不随重量变。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107449193/"]]},
+
+{id:"cl-culiu-baicai",name:"醋溜白菜（村驴版）",tag:"菜帮先炒出焦边，再下菜叶淋醋溜汁",main:"大白菜",base:1,unit:"份",
+ groups:[["主料",[["大白菜",6,"片","帮和叶分开"],["蒜",3,"粒"],["盐",0.5,"茶勺","炒菜帮时加"]]],
+  ["醋溜汁",[["白糖",0.5,"勺"],["玉米淀粉",1,"勺"],["5 度白醋",4,"勺"],["生抽",3,"勺"],["老抽",0.5,"勺"],["蚝油",1,"勺"],["鸡精",1,"茶匙"],["清水",6,"勺"]]]],
+ steps:["白菜帮斜刀片开，叶子撕块；醋溜汁调匀。","热油下蒜，先炒菜帮，加半茶勺盐，炒到边缘有焦色。","下菜叶炒软，淋入醋溜汁，大火翻匀出锅。"],
+ tips:["和菜单里隋坡的醋溜白菜可以对着看。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107387449/"]]},
+
+{id:"cl-bazirou",name:"把子肉",tag:"五花肉煎香，和虎皮蛋、虎皮椒一起砂锅慢炖",main:"下五花肉",base:1000,unit:"g",
+ groups:[["主料",[["下五花肉",1000,"g","烧皮刮净，切厚片"],["熟鸡蛋",6,"个"],["薄皮绿辣椒",250,"g","留蒂，拍一下"]]],
+  ["炖料",[["大葱",25,"g"],["姜",20,"g"],["大蒜",20,"g"],["香叶",2,"片"],["八角",2,"个"],["花椒",null,"","十几粒"],["白芷",1,"小片"],["白蔻",3,"粒"],["冰糖",15,"g"],["生抽",30,"g"],["老抽",10,"g"],["蚝油",20,"g"],["盐",[2,3],"g"],["味精",3,"g"],["开水",null,"","没过肉，要多加",true]]]],
+ steps:["五花肉把皮烧黑，泡 2 分钟后刮净擦干，切成比筷子略宽的厚片。","锅里薄薄一层油，大火下肉后转中小火，两面煎到微黄，放进砂锅。","用锅里的猪油把熟鸡蛋煎出虎皮，盛出。","辣椒擦干下锅，先最小火等锅温降下来，再中小火煎到每面起虎皮，盛出。","砂锅里加全部炖料，加开水没过肉，小火慢炖 ※ 炖多久、鸡蛋辣椒何时下，摘要里没有，以视频为准。"],
+ tips:["辣椒一定擦干再下锅，不然溅油。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107527837/"]]},
+
+{id:"cl-shousi-baocai",name:"手撕包菜",tag:"花椒炸香捞出，余温炒小料，大火爆炒 2 分钟",main:"包菜",base:400,unit:"g",
+ groups:[["主料",[["包菜",400,"g","约 6 片，沥干"],["大蒜",15,"g","切厚片"],["干辣椒",null,"","适量，切段"],["花椒",null,"","15–20 粒"]]],
+  ["料汁",[["生抽",10,"g"],["蚝油",40,"g"],["陈醋",5,"g"],["白糖",2,"g"]]]],
+ steps:["包菜叶撕大块，菜梗拍扁后斜刀片开；料汁调匀。","热油，中小火把花椒炸香，颜色变深就捞出丢掉。","关火，等锅不太冒烟了，下蒜片和辣椒段，用余温炒香。","下包菜，开大火，全程爆炒约 2 分钟。","包菜变嫩绿、开始变软时倒入料汁，翻匀出锅。"],
+ tips:["2 分钟是按 400g 说的，一次别炒太多，锅气不够会出水。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107581332/"]]},
+
+{id:"cl-congyou-banmian",name:"葱油拌面",tag:"小葱和油 1:1 慢熬，熬一罐吃好多顿",main:"小葱",base:250,unit:"g",
+ groups:[["葱油",[["小葱",250,"g"],["油",250,"g","和葱 1:1"]]],
+  ["酱汁",[["生抽",120,"g"],["白糖",40,"g","怕甜可减到 30g"],["老抽",null,"","※ 转录里的数字有疑问，少量上色即可"]]],
+  ["拌面",[["面条",null,"","每 130–150g 面约用 15g 葱油酱",true]]]],
+ steps:["小葱洗净擦干切段，和油 1:1 冷油下锅，小火慢熬到葱变焦黄发酥，捞出葱酥。","生抽 {{120}}g、白糖 {{40}}g 和少量老抽调匀，倒进葱油里，最小火熬到冒泡就关火。","面煮熟沥干，拌入葱油酱和葱酥。"],
+ tips:["这份是网友按村驴视频做的记录，不是逐字稿；老抽的克数存疑 ※。"],src:[["下厨房网友记录","https://www.xiachufang.com/recipe/107713322/"]]},
+
+{id:"cl-tudousi",name:"炒土豆丝（村驴版）",tag:"洗净淀粉泡白醋，酱油先下锅冒泡再下丝",main:"土豆",base:650,unit:"g",
+ groups:[["主料",[["土豆",650,"g","中等粗细的丝"],["绿辣椒",65,"g"],["小米辣",40,"g"],["大蒜",20,"g"],["香菜梗",15,"g"],["干辣椒",null,"","几个"],["花椒",null,"","适量，炸香后捞出"]]],
+  ["调味",[["白醋",1,"勺","泡土豆丝用"],["生抽",2,"勺"],["老抽",null,"","一点点"]]]],
+ steps:["土豆丝反复洗到水完全清澈，加 1 勺白醋抓匀，泡 10 分钟，捞出尽量沥干。","油不用太热，下花椒炸到深紫色、出香味，捞出丢掉。","关火，下小料用余温爆香。","不开火先加 2 勺生抽和一点老抽，再开火，锅里一冒泡马上下土豆丝，快速翻炒均匀出锅。"],
+ tips:["这是小红书搬运的文字版，盐等其他调味摘要里没有 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107502874/"]]},
+
+{id:"cl-lasi-chaodan",name:"拉丝番茄炒蛋",tag:"宽油高处倒蛋液炸出蛋丝，番茄丁炒成糊",main:"番茄",base:650,unit:"g",buzz:"网友翻做很多的一道",
+ groups:[["主料",[["番茄",650,"g","3 个：1 个滚刀块，2 个切大丁"],["鸡蛋",5,"个"],["大蒜",25,"g","约 6 粒，分两次下"],["香菜或葱花",15,"g"]]],
+  ["调味",[["白糖",5,"g"],["生抽",10,"g"],["蚝油",20,"g"],["番茄酱",40,"g"],["味精",2,"g"],["盐",3,"g"]]],
+  ["淀粉水",[["土豆淀粉",5,"g"],["清水",20,"g"]]]],
+ steps:["鸡蛋彻底打匀。油要多到半炸的程度，大火烧到冒白烟。","把碗举高，慢慢倒蛋液，边倒边用筷子搅；鼓起来的拨到一边，往空处接着倒。","全部下锅后等 1 分钟让蛋吐油，用漏勺捞出并压出油。","锅留底油，关火，下一半蒜末炒香；倒入番茄丁，开大火炒到出汤，加白糖 {{5}}g。","汤冒泡后转中大火，大部分番茄丁成糊时转最小火，加生抽 {{10}}g、蚝油 {{20}}g、番茄酱 {{40}}g。","回大火煮开，下番茄块和鸡蛋翻匀，加味精 {{2}}g、盐 {{3}}g，淋淀粉水，撒剩下的蒜末和香菜出锅。"],
+ tips:["热油量大，倒蛋液时会溅，注意防烫。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107801280/"]]},
+
+{id:"cl-hongshao-paigu",name:"不炒糖色红烧排骨",tag:"1 老抽 2 生抽 4 糖 5 醋，按勺记",main:"排骨",base:1,unit:"份",
+ groups:[["主料",[["排骨",null,"","※ 文字版没写重量"]]],
+  ["料汁（按勺）",[["老抽",1,"勺"],["生抽",2,"勺"],["白糖",4,"勺"],["醋",5,"勺"]]]],
+ steps:["排骨处理干净，和料汁一起下锅，加水。","炖 40 分钟，再收汁约 10 分钟 ※ 细节以视频为准。"],
+ tips:["我只查到料汁比例和时间，其余步骤没有可靠文字稿 ※。"],src:[["村驴菜谱合集（下厨房）","https://www.xiachufang.com/recipe/107619140/"]]},
+
+{id:"cl-nongjia-yiwanxiang",name:"农家一碗香",tag:"煎蛋、五花肉、螺丝椒加豆豉同炒",main:"",base:1,unit:"份",
+ groups:[["用料（克数没查到 ※）",[["鸡蛋",null,"",""],["五花肉",null,"",""],["螺丝椒",3,"根"],["小米辣",6,"根"],["大蒜",2,"粒"],["姜、大葱、豆豉",null,"","适量"],["生抽、老抽、蚝油、白糖、鸡精",null,"","适量"]]]],
+ steps:["※ 我只查到用料清单，没有带克数和步骤的文字稿，做法以视频为准。"],
+ tips:[],src:[["村驴菜谱合集（下厨房）","https://www.xiachufang.com/recipe/107619140/"]]},
+
+{id:"cl-disanxian",name:"地三鲜",tag:"土豆、茄子、螺丝椒，碗汁一次下锅",main:"",base:1,unit:"份",
+ groups:[["主料",[["土豆",1,"个"],["茄子",1.5,"根"],["螺丝椒",2,"个"]]],["碗汁",[["碗汁",null,"","※ 配比我没查到，以视频为准"]]]],
+ steps:["※ 文字版只有主料，没有碗汁配比和步骤，做法以视频为准。"],
+ tips:[],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107523242/"]]},
+
+{id:"cl-ganzheng-paigu",name:"干蒸排骨",tag:"仅视频，文字版用量不完整",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["文字版用量多是“勺”，而且没写排骨重量，没法换算，所以不列用料。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107628201/"]]},
+{id:"cl-diguoji",name:"地锅鸡",tag:"大火把鸡炒到出清油，炖到最后贴面饼",main:"鸡肉",base:1000,unit:"g",
+ groups:[["主料",[["鸡肉",1000,"g","2 斤，切块挤干水"],["青红椒",null,"","适量"]]],
+  ["干料",[["十三香或五香粉",0.67,"茶勺"],["大葱",20,"g"],["姜",20,"g"],["大蒜",20,"g","约 4 粒"],["八角",2,"个"],["花椒",2,"g"],["白芷",1,"小片"]]],
+  ["料汁",[["干辣椒面",10,"g","主要调色"],["白糖",10,"g"],["生抽",40,"g"],["老抽",10,"g"],["蚝油",20,"g"],["鸡精",2,"g"],["味精",3,"g"]]],
+  ["面饼",[["面粉",250,"g"],["凉水",140,"g"]]]],
+ steps:["鸡块洗净，去掉内脏残留和太厚的鸡油，尽量挤干再用纸吸干。面粉加凉水和成面团醒着。","油稍多，大火把锅润透到冒烟，下鸡块先别动，煎 20–30 秒。","保持大火炒 4–5 分钟，到油变清、稍微粘锅，下干料炒香，再下料汁炒匀。","加热水没过鸡肉，大火烧开后转中火炖 ※ 原版时长摘要被截断；网友改良版是中火炖 5 分钟，加土豆 5 分钟，加粉条 5 分钟。","面团分剂子压扁拉长，一边贴锅壁一边泡在汤里，盖盖大火再炖约 5 分钟，下青红椒拌匀出锅。"],
+ tips:["改良版加了土豆、粉条和 10g 黄豆酱，可以按喜好加。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107428691/"],["网友改良版","https://www.xiachufang.com/recipe/107570161/"]]},
+{id:"cl-malatang",name:"预制麻辣烫",tag:"仅视频，文字版没有用量",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["文字版没有给用量。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107713818/"]]},
+
+{id:"sui-daxia-baicai",chef:"隋坡",name:"大虾烧白菜",tag:"虾头熬汤，白菜吸满虾汤",main:"白菜",base:500,unit:"g",hot:[223.6,"B站","万播放"],
+ groups:[["主料",[["白菜",500,"g"],["大虾",250,"g","虾头剪下熬汤"],["大葱",30,"g"],["姜",3,"片"],["热水",500,"ml","熬虾汤"]]],
+  ["调味",[["盐",3,"g"],["糖",2,"g"],["味精",1,"g"],["淀粉",3,"g","勾芡"]]]],
+ steps:["大虾剪须、去沙包和虾线，虾头剪下留用。","中火把虾头煎香，加葱姜，倒入热水 {{500}}ml 熬成浓虾汤，捞出虾头。","另起锅煸软白菜，盛出。","净油把大虾煎透，加虾汤和白菜，加盐 {{3}}g、糖 {{2}}g、味精 {{1}}g。","㸆到白菜软烂入味，收汁，用淀粉 {{3}}g 调水勾芡出锅。"],
+ tips:[],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107242816/"],["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-tudou-niurou",chef:"隋坡",name:"土豆炖牛肉",tag:"豆瓣酱加黄豆酱，高压锅 25 分钟",main:"牛腱子",base:1000,unit:"g",hot:[286,"B站","万播放"],
+ groups:[["主料",[["牛腱子",1000,"g"],["土豆、胡萝卜",null,"","※ 文字版没写重量"]]],
+  ["调味",[["豆瓣酱",55,"g"],["黄豆酱",30,"g"],["老抽",10,"g"],["盐",3,"g"],["糖",5,"g"],["味精",5,"g"],["黑胡椒",5,"g"]]],
+  ["香料",[["八角",2,"个"],["桂皮",3,"小块"],["香叶",2,"片"],["花椒",2,"g"],["葱",1,"根"],["姜",8,"片"],["蒜",1,"头"]]]],
+ steps:["牛腱子切块，处理干净。","炒香葱姜蒜和香料，下豆瓣酱 {{55}}g、黄豆酱 {{30}}g 炒出香味，下牛肉，加老抽、盐、糖调味，加水。","倒入高压锅，上汽后压 25 分钟。","开盖加土豆和胡萝卜，小火再煮 5 分钟，加味精、黑胡椒出锅。"],
+ tips:["25 分钟和 5 分钟不随重量变。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107317228/"]]},
+
+{id:"sui-ziran-yangrou",chef:"隋坡",name:"孜然羊肉",tag:"薄浆炸两遍结壳，余温炒孜然辣椒",main:"羊前腿肉",base:800,unit:"g",hot:[95.8,"B站","万播放"],
+ groups:[["主料",[["羊前腿肉",800,"g","切肥瘦相间的块"]]],
+  ["腌制",[["盐",5,"g"],["水",300,"g","膻味重换葱姜水或花椒水"],["淀粉",100,"g","抓到表面微微发白"]]],
+  ["干料",[["孜然碎",20,"g"],["辣椒粉",20,"g"],["芝麻",20,"g"]]]],
+ steps:["羊肉加盐 {{5}}g 和水 {{300}}g 抓到盐化开，再加淀粉抓匀，表面微微发白即可。","油烧到冒烟，沿锅边下肉，全程大火，表面稍上色就捞出。","等油温回升再炸一次，表面结壳捞出。","倒出油，只留一点底油，用余温煸孜然碎 {{20}}g、辣椒粉 {{20}}g。","倒回羊肉翻匀，撒芝麻 {{20}}g 出锅。"],
+ tips:["一次别下太多肉，油温掉了就结不了壳。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-cuchaodan",chef:"隋坡",name:"醋炒蛋",tag:"醋溜汁配辣椒蒜蓉，湖南下饭菜",main:"鸡蛋",base:8,unit:"只",hot:[151,"B站","万播放"],
+ groups:[["主料",[["鸡蛋",8,"个","看盘子大小定"],["辣椒",8,"g"],["美人椒",8,"g"],["蒜蓉",15,"g"],["葱花",10,"g"],["香葱",10,"g"]]],
+  ["醋溜汁",[["酱油",50,"g"],["醋",60,"g"],["味精",2,"g"],["糖",6,"g"],["水",15,"g"]]],
+  ["收尾",[["水淀粉",5,"g"],["香油",10,"g"]]]],
+ steps:["醋溜汁调匀备用。","鸡蛋下油锅煎炒到蓬松定型 ※ 具体手法文字版没写，以视频为准。","下蒜蓉、辣椒炒香，倒入醋溜汁，淋水淀粉 {{5}}g。","撒葱花、香葱，淋香油 {{10}}g 出锅。"],
+ tips:["这是网友个人记录的用料，步骤是我按常规顺序补的 ※。"],src:[["下厨房网友记录","https://www.xiachufang.com/recipe/107327896/"]]},
+
+{id:"sui-yan-huanggua",chef:"隋坡",name:"腌黄瓜",tag:"蒜、小米辣、香菜加酱油醋汁",main:"",base:1,unit:"份",
+ groups:[["主料",[["黄瓜",null,"","※ 文字版没写重量"]]],
+  ["料汁",[["蒜",50,"g"],["小米辣",20,"g"],["香菜",27,"g"],["糖",18,"g"],["味精",2,"g"],["酱油",80,"g"],["醋",25,"g"]]]],
+ steps:["黄瓜切条或拍块，先用盐杀出水分并沥干 ※ 这一步是常规做法，文字版摘要里没有。","料汁调匀，和黄瓜拌匀，冷藏腌入味。"],
+ tips:["这组用料来自思维导图里的一段，菜名是我按内容对上的 ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-dangshen-dunji",chef:"隋坡",name:"党参炖鸡",tag:"花雕、党参、红枣桂圆清炖",main:"鸡",base:1000,unit:"g",
+ groups:[["主料",[["鸡",1000,"g"],["水",1600,"g"]]],
+  ["配料",[["花雕酒",50,"g"],["党参",30,"g"],["红枣",10,"g"],["桂圆",5,"g"],["枸杞",5,"g"],["姜",15,"g"]]],
+  ["调味",[["盐",5,"g"],["味精",2,"g"]]]],
+ steps:["鸡斩块，焯水洗净。","鸡块加水 {{1600}}g、花雕 {{50}}g、姜、党参、红枣、桂圆，烧开后小火炖到软烂 ※ 时长文字版没写。","出锅前加枸杞，用盐 {{5}}g、味精 {{2}}g 调味。"],
+ tips:["菜名是我按这组用料对上的 ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-congbao-yangrou",chef:"隋坡",name:"葱爆羊肉",tag:"葱姜花椒水腌肉，分两锅大火爆",main:"羊腿肉",base:1,unit:"份",hot:[107,"B站","万播放"],
+ groups:[["主料",[["羊腿肉",null,"","顶刀切 1–2mm 薄片 ※ 文字版没写重量"],["大葱",190,"g","分两锅，每锅 95g"],["香菜",170,"g","分两锅，每锅 85g"]]],
+  ["腌肉",[["胡椒粉",1,"g"],["盐",2,"g"],["味精",1,"g"],["酱油",5,"g"],["葱姜花椒水",100,"g"]]]],
+ steps:["羊肉片加腌料抓匀，把葱姜花椒水全部吃进去。","分两锅炒：锅烧到很热，下一半肉片大火爆散。","下一半大葱和香菜，翻几下就出锅 ※ 调味细节以视频为准。"],
+ tips:["分两锅是为了保住火力，家用灶更要少量多次。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-shizitou",chef:"隋坡",name:"红烧狮子头",tag:"五花肉切石榴粒，炸定型后砂锅炖 100 分钟",main:"五花肉",base:1000,unit:"g",hot:[113.6,"B站","万播放"],
+ groups:[["肉馅",[["五花肉",1000,"g","去皮，切石榴粒再斩几下"],["盐",20,"g"],["味精",2,"g"],["胡椒粉",2,"g"],["葱姜水",300,"g"],["淀粉",120,"g"],["马蹄",60,"g"]]],
+  ["炖汤",[["鲜味酱油",80,"g"],["黄酒",100,"g"],["葱",300,"g"],["姜",100,"g"],["大料",4,"个"],["桂皮",5,"g"],["糖",30,"g"],["老抽",50,"g"]]]],
+ steps:["五花肉去皮切成石榴粒大小，略斩；加肉馅调料搅上劲 ※ 加料顺序以视频为准。","油烧到六成热，把肉团成狮子头下锅炸，定型上色后直接捞进砂锅。","砂锅加炖汤用料，烧开转中小火炖 100 分钟。","取出装盘；舀一些原汤用水淀粉勾芡，浇在狮子头上。"],
+ tips:["100 分钟不随重量变。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-suanla-tudousi",chef:"隋坡",name:"酸辣土豆丝",tag:"米醋为主，陈醋增香",main:"土豆丝",base:500,unit:"g",hot:[108.5,"B站","万播放"],
+ groups:[["主料",[["土豆丝",500,"g"],["蒜、辣椒丝、香菜杆",null,"","适量"]]],
+  ["调味",[["米醋",40,"g"],["陈醋",5,"g"],["盐、味精、香油",null,"","※ 克数文字版摘要里没有"]]]],
+ steps:["土豆丝洗去淀粉，沥干。","大火快炒，沿锅边烹米醋 {{40}}g，调味后淋陈醋 {{5}}g、香油出锅 ※ 完整顺序以视频为准。"],
+ tips:["视频标题叫“黄金配比”，我只查到两种醋的克数 ※。"],src:[["B 站视频","https://www.bilibili.com/video/BV1ph4y1r7pg/"],["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-jianjiao-gandoufu",chef:"隋坡",name:"尖椒干豆腐",tag:"用料不全，只查到油和葱蒜",main:"",base:1,unit:"份",
+ groups:[["查到的部分",[["油",60,"g"],["葱",30,"g"],["蒜",30,"g"],["干豆腐、尖椒及调味",null,"","※ 没查到"]]]],
+ steps:["※ 文字版只查到零散的用量，做法以视频为准。"],tips:[],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-cujiao-yu",chef:"隋坡",name:"醋椒鱼",tag:"胡椒和白醋提味的鱼汤",main:"鱼",base:1000,unit:"g",
+ groups:[["主料",[["鱼",1000,"g"]]],
+  ["调味",[["胡椒粉",5,"g"],["盐",3,"g"],["白糖",1,"g"],["白醋",50,"g"],["味精",2,"g"],["葱",20,"g"],["姜",10,"g"],["香菜",20,"g"]]]],
+ steps:["※ 我只查到这组用料，菜名是按“胡椒＋白醋＋鱼”推断的，步骤以视频为准。"],
+ tips:["菜名是推断，可能不准 ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-chao-zhugan",chef:"隋坡",name:"辣椒炒猪肝",tag:"猪肝配大量线椒和青蒜",main:"猪肝",base:400,unit:"g",
+ groups:[["主料",[["猪肝",400,"g"],["线椒",500,"g","其他辣椒也行"],["青蒜",80,"g"]]],
+  ["上浆调味",[["料酒",80,"g"],["盐",5,"g"],["味精",2,"g"],["胡椒粉",2,"g"],["淀粉",80,"g"],["酱油",5,"g"],["香油",5,"g"]]],
+  ["油和小料",[["菜籽油",60,"g"],["猪油",60,"g"],["姜",5,"g"],["蒜",10,"g"],["鲜花椒",10,"g"],["辣椒节",5,"g"],["葱",5,"g"]]]],
+ steps:["※ 我只查到用料表，菜名是按用料对上的，步骤以视频为准。猪肝要炒到熟透。"],
+ tips:[],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-tangcu-paigu",chef:"隋坡",name:"糖醋排骨",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[136,"B站","万播放"],groups:[],steps:[],
+ tips:["上一版列的那组料汁其实属于老醋花生米，已经挪过去。这道我没找到可靠的文字版。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%B3%96%E9%86%8B%E6%8E%92%E9%AA%A8"]]},
+
+{id:"sui-hongshaorou",chef:"隋坡",name:"红烧肉（有手就行版）",tag:"不炒糖色，腐乳增香上色",main:"",base:1,unit:"份",hot:[163,"B站","万播放"],
+ groups:[["用料（克数没查到 ※）",[["五花肉",null,"","切约 2.5cm 的块"],["大葱、生姜",null,"",""],["大料、桂皮",null,"",""],["酱油 / 老抽",null,"",""],["腐乳",null,"","增香增色"],["味精",null,"","几粒"]]]],
+ steps:["大料、桂皮下锅煸香，下五花肉块开盖煸炒，把肉腥味炒出去，葱姜放中间煸香。","关小火，加酱油和腐乳，颜色合适后加热水到和肉齐平。","小火咕嘟到入味上色，最后加几粒味精 ※ 时长以视频为准。"],
+ tips:["这道查到了步骤但没有克数，所以不能换算。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%BA%A2%E7%83%A7%E8%82%89%E4%BD%86%E6%9C%89%E6%89%8B%E5%B0%B1%E8%A1%8C"]]},
+{id:"sui-youmen-daxia",chef:"隋坡",name:"油焖大虾",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[151.7,"B站","万播放"],groups:[],steps:[],
+ tips:["B 站播放很高的一条，但我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站视频","https://www.bilibili.com/video/BV18x421975d/"]]},
+{id:"sui-mapo-doufu",chef:"隋坡",name:"麻婆豆腐",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[158,"B站","万播放"],groups:[],steps:[],
+ tips:["B 站播放很高的一条，但我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%BA%BB%E5%A9%86%E8%B1%86%E8%85%90"]]},
+{id:"sui-guobaorou",chef:"隋坡",name:"锅包肉（东北饭店老板版）",tag:"土豆淀粉挂糊，糖醋 1:1",main:"里脊肉",base:300,unit:"g",hot:[196,"B站","万播放"],
+ groups:[["主料",[["里脊肉",300,"g"],["土豆淀粉",250,"g","要选黏性大的"],["蒜",2,"瓣"],["葱、胡萝卜",null,"","切丝"]]],
+  ["糖醋汁",[["白糖",90,"g"],["白醋",90,"g"],["盐",2,"g"],["老抽",1,"g"]]]],
+ steps:["※ 我只查到用料，步骤以视频为准。"],
+ tips:["这组用料在思维导图里没写菜名，我按“里脊＋土豆淀粉＋糖醋”对到锅包肉 ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%94%85%E5%8C%85%E8%82%89"]]},
+{id:"sui-yuxiang-rousi",chef:"隋坡",name:"鱼香肉丝",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[114.6,"B站","万播放"],groups:[],steps:[],
+ tips:["B 站播放很高的一条，但我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%B1%BC%E9%A6%99%E8%82%89%E4%B8%9D"]]},
+{id:"sui-youbao-shuangcui",chef:"隋坡",name:"油爆双脆",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[310,"B站","万播放"],groups:[],steps:[],
+ tips:["B 站播放很高的一条，但我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B2%B9%E7%88%86%E5%8F%8C%E8%84%86"]]},
+{id:"sui-sanbuzhan",chef:"隋坡",name:"三不沾",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[238,"B站","万播放"],groups:[],steps:[],
+ tips:["B 站播放很高的一条，但我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E4%B8%89%E4%B8%8D%E6%B2%BE"]]},
+
+{id:"cl-qiangban-tudousi",name:"炝拌土豆丝",tag:"焯 1 分钟过凉，热油泼辣椒段闷香",main:"土豆",base:600,unit:"g",
+ groups:[["主料",[["土豆",600,"g","约 3 个，擦丝"],["大蒜",30,"g","约 6 粒，切末"],["干辣椒",null,"","适量，剪小段"],["香菜",15,"g"]]],
+  ["料汁",[["生抽",20,"g"],["芝麻香油",10,"g"]]],["料油",[["花椒",1.5,"g"],["油",null,"","适量"]]],
+  ["调味",[["白糖",[10,15],"g"],["5 度白醋",25,"g"],["盐",2,"g"],["味精",2,"g"]]]],
+ steps:["土豆丝反复冲洗到水完全清澈，沥干。","水开下土豆丝，计时 1 分钟捞出，过凉后尽量挤干。","土豆丝上依次放蒜末，生抽淋在蒜末上，辣椒段放生抽上，香油淋在辣椒上。","油里下花椒，中小火炸香后捞出；转大火烧到冒烟，泼在辣椒段上，马上盖盖闷 1–2 分钟。","开盖加白糖、白醋、盐、味精和香菜，抓拌均匀。"],
+ tips:["1 分钟焯水不随量变；量大分批焯，保证脆。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107596277/"]]},
+
+{id:"cl-xiaoji-dunmogu",name:"小鸡炖蘑菇（不加粉条）",tag:"宽油炸姜、鸡块炒 5 分钟再下香料酱料",main:"鸡",base:1300,unit:"g",
+ groups:[["主料",[["鸡",1300,"g","切块沥干"],["干香菇",80,"g","提前 1 小时冷水泡"]]],
+  ["香料",[["生姜",4,"大片"],["大葱",1,"段","手掌长"],["大蒜",3,"瓣"],["香叶",2,"片"],["八角",2,"个"],["干辣椒",null,"","适量"],["十三香",1,"茶匙"]]],
+  ["调味",[["生抽",4,"勺"],["老抽",2,"勺"],["蚝油",1,"大勺"],["白糖",1,"茶匙"],["味精",1,"茶匙"],["盐",null,"","适量"]]]],
+ steps:["干香菇提前 1 小时洗净冷水泡；鸡切块沥干。","宽油烧到冒烟，下姜片炸到四周焦黄。","从锅边下鸡块，先别动十几秒，再翻炒 5 分钟到看不到血色。","下全部香料和十三香炒香，加生抽、老抽、蚝油、白糖、味精，大火炒匀。","下香菇翻炒 1–2 分钟，加水炖到鸡肉软烂 ※ 加多少水、炖多久摘要里没有，以视频为准。"],
+ tips:["用料是“勺”，按家用汤勺理解 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107586419/"]]},
+
+{id:"cl-haixian-zhou",name:"海鲜砂锅粥",tag:"米先干炒，干贝猪油熬底，螃蟹花生酱提鲜",main:"大米",base:115,unit:"g",
+ groups:[["主料",[["大米",115,"g"],["淡干干贝",9,"g","约 4 粒，温水泡 20 分钟撕丝"],["生姜",7,"g","切丝"],["螃蟹",200,"g","约 1 只"],["活虾",200,"g"],["凉水",1700,"ml"]]],
+  ["调味",[["猪油",15,"g"],["冬菜",15,"g"],["大蒜酥",2,"g","可不放"],["鸡粉",6,"g"],["盐",5,"g"],["沙茶粉",1,"g","可不放"],["白胡椒粉",0.5,"g"],["柔滑花生酱",10,"g"],["芝麻香油",3,"g"],["香菜末",10,"g"]]]],
+ steps:["干贝温水泡 20 分钟，去硬筋撕成丝；姜切丝，冬菜切碎。","空锅不放油，下大米大火炒到个别米粒微黄，盛出。","砂锅加凉水 {{1700}}ml 和炒过的米，大火烧开，盖子留缝，偶尔翻底防粘。","沸腾后下干贝丝、姜丝、猪油，转小火保持翻腾不溢，盖子留大缝熬 20 分钟。","螃蟹去腮、胃等，剪成四块，蟹钳拍裂。","下螃蟹和花生酱，再加冬菜、蒜酥、鸡粉、盐等调味 ※ 虾何时下、后续时间摘要被截断，以视频为准。","出锅前撒白胡椒、香菜，滴香油。"],
+ tips:["这份是小红书网友整理的文字稿。","1700ml 水是按 115g 米说的，跟着换算一起变。"],src:[["小红书文字稿","https://www.xiaohongshu.com/explore/68ad6df3000000001c005a89"]]},
+
+{id:"cl-yuxiang-rousi",name:"鱼香肉丝（村驴版）",tag:"里脊上浆宽油滑，碗汁一次下锅",main:"里脊肉",base:500,unit:"g",
+ groups:[["主料",[["里脊肉",500,"g","切丝攥干水"],["木耳",null,"","一把，开水泡发"],["胡萝卜",1,"根","切丝"],["莴笋",1,"根","切丝"],["小米辣",3,"根"],["姜蒜末",null,"","适量"],["郫县豆瓣酱",1,"勺"]]],
+  ["腌肉",[["盐",1,"小勺"],["胡椒粉",2,"勺","※ 原文如此，偏多，可酌减"],["清水",1,"小勺"],["蛋清",1,"个"],["玉米淀粉",1,"勺"],["油",null,"","封一层"]]],
+  ["料汁",[["白糖",1,"勺"],["米醋",2,"勺"],["生抽",1,"勺"],["老抽",0.5,"勺"],["清水",5,"勺"],["玉米淀粉",0.75,"勺","大半勺"]]]],
+ steps:["肉丝加腌肉料抓匀，最后拌油封住。","宽油滑肉，肉丝变白就捞出。","留底油炒豆瓣酱，炒香后下姜蒜末，再下配菜炒到断生。","倒回肉丝，淋入搅匀的料汁，大火翻匀出锅。"],
+ tips:["这是网友按视频记的“勺”量 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107566892/"]]},
+
+{id:"cl-linyi-chaoji",name:"临沂炒鸡",tag:"姜片煎焦、鸡块煎炒，海鲜酱炒鸡酱炖",main:"鸡",base:1500,unit:"g",
+ groups:[["主料",[["鸡",1500,"g","小公鸡最好，切小块吸干水"],["大葱白",80,"g","切马蹄块"],["大蒜",70,"g","约 2 头，去首尾"],["生姜",60,"g","切片"],["螺丝椒",120,"g"],["红椒",null,"","可选，配色"]]],
+  ["香料",[["八角",3,"个"],["白芷",2,"片"],["红花椒、青花椒",null,"","各 1 小撮"],["香叶",1,"片"],["毛砂仁",1,"个","可不放"],["干辣椒段",null,"","可选"]]],
+  ["炒鸡酱",[["生抽",10,"g"],["老抽",10,"g"],["蚝油",20,"g"],["海鲜酱",40,"g"]]],
+  ["其他",[["猪油",1,"勺"],["味精",3,"g"],["开水",null,"","没过鸡块",true]]]],
+ steps:["鸡切小块，洗净后充分吸干水分；炒鸡酱调匀。","热锅加油和 1 勺猪油，大火烧到冒烟，下姜片煸到边缘微焦。","下鸡肉摊平煎 20 多秒，再翻炒到每块都带焦边、锅里的油变清亮。","下香料炒香，加炒鸡酱炒出香味，加开水没过鸡块，烧开后炖 ※ 炖多久摘要里没有，以视频为准。","捞出香料和姜片，转大火，下大蒜、葱白、螺丝椒和红椒翻炒。","收浓汤汁，加味精 {{3}}g 炒匀出锅。"],
+ tips:["炖鸡要用开水，肉才嫩。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107644049/"]]},
+
+{id:"cl-qieding-lumian",name:"茄丁打卤面",tag:"茄子不杀水，两种酱炖 5 分钟勾芡",main:"茄子",base:500,unit:"g",
+ groups:[["主料",[["茄子",500,"g","切丁，不杀水"],["五花肉",200,"g","切条"],["青椒",100,"g","切丁，分两次下"],["红彩椒",50,"g"],["葱",40,"g"],["姜",5,"g"],["蒜",30,"g","切末，分两次下"],["八角",1,"个"]]],
+  ["调味",[["十三香",1,"g"],["生抽",40,"g"],["黄豆酱",35,"g"],["甜面酱",15,"g"],["清水",500,"ml"],["白糖",6,"g"],["老抽",3,"g"],["鸡精",1,"g"],["味精",2,"g"],["盐",null,"","按口味"]]],
+  ["淀粉水",[["土豆淀粉",5,"g"],["清水",30,"g"]]],["面条",[["面条",null,"","按人数",true]]]],
+ steps:["正常炒菜的油量，下五花肉、八角、姜，大火煸到五花肉表面金黄。","加十三香 {{1}}g，下葱和 1/4 蒜末，加生抽 {{40}}g，下一半青椒丁。","下茄子大火炒 3–4 分钟，加黄豆酱 {{35}}g、甜面酱 {{15}}g。","加清水 {{500}}ml，再加白糖、老抽、鸡精、味精，大火烧开转小火炖 5 分钟。","大火收汁，下剩下的青红椒和蒜末，按口味加盐。","淋入淀粉水，等 7–8 秒再推匀，到黏稠就出锅，浇在煮好的面上。"],
+ tips:[],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107686358/"]]},
+
+{id:"sui-kele-jichi",chef:"隋坡",name:"可乐鸡翅（隋坡版）",tag:"多加一步话梅，可乐没过鸡翅炖 8 分钟",main:"鸡翅",base:11,unit:"只",
+ groups:[["主料",[["鸡翅",11,"个","一面 3 刀，另一面中间斩透"],["可乐",1100,"g","要没过鸡翅"]]],
+  ["调味",[["话梅",35,"g"],["冰糖",15,"g"],["盐",2,"g"],["料酒",50,"g","焯水用"],["葱姜",50,"g","共计"],["老抽",8,"g","颜色淡再加"],["油",15,"g"]]]],
+ steps:["鸡翅打花刀；不新鲜的先在姜水里泡一会儿。","鸡翅冷水下锅，加葱姜和料酒，水开撇沫；闻蒸汽是葱姜酒香就捞出，还腥就再加葱姜。","锅里用油润一下，倒可乐，加话梅、冰糖、盐，下鸡翅，可乐要没过鸡翅。","大火烧开，颜色淡就加老抽，撇沫后盖盖小火炖 8 分钟，筷子扎不出血水即可。","开大火收汁，颜色浅可以补点可乐，锅底只剩一点汁就出锅。"],
+ tips:["8 分钟不随数量变；鸡翅很大就多炖几分钟。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-gedatang",chef:"隋坡",name:"疙瘩汤",tag:"全蛋和面，疙瘩煮了不长个",main:"面粉",base:200,unit:"g",
+ groups:[["面疙瘩",[["面粉",200,"g"],["鸡蛋",1,"个","和面用"],["水",20,"g"]]],
+  ["汤料",[["西红柿",210,"g"],["油菜",60,"g"],["葱",75,"g"],["鸡蛋",2,"个","出锅前下"],["香菜",20,"g"],["油",80,"g"],["酱",30,"g","※ 原文只写“酱”"],["盐",5,"g"],["水",30,"g","※ 原文如此，汤的水量应远多于此，以视频为准"]]]],
+ steps:["面粉放进砂锅；1 个全蛋加一点水打散，倒进面粉里搓成小疙瘩（加全蛋疙瘩煮了不长个）。","※ 后面的炝锅、煮汤步骤摘要里没有，以视频为准：常见顺序是葱炝锅、炒西红柿出汁、加水烧开下疙瘩、下油菜、淋蛋液、撒香菜。"],
+ tips:["用料来自网友整理的思维导图，有两处数字存疑 ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-yuxiang-qiezi",chef:"隋坡",name:"鱼香茄子",tag:"十分钟搞定的饭店味",main:"茄子",base:500,unit:"g",
+ groups:[["主料",[["茄子",500,"g"],["绿尖椒",50,"g"],["红尖椒",80,"g"],["木耳",60,"g"]]],
+  ["调味",[["泡椒酱",40,"g"],["葱",20,"g"],["姜",20,"g"],["蒜",20,"g"],["淀粉",20,"g"],["油",20,"g"],["料汁",null,"","※ 配比摘要里没有"]]]],
+ steps:["※ 我只查到用料，步骤以视频为准。"],tips:[],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%B1%BC%E9%A6%99%E8%8C%84%E5%AD%90"]]},
+
+{id:"sui-laocu-huasheng",chef:"隋坡",name:"老醋花生米",tag:"冰糖米醋汁加香料，浇在炸花生上",main:"",base:1,unit:"份",
+ groups:[["主料",[["花生米",null,"","※ 重量摘要里没有"]]],
+  ["料汁",[["米醋",130,"g"],["冰糖",100,"g"],["酱油",40,"g"],["蚝油",35,"g"],["大料",1,"个"],["香叶",1,"片"],["花椒",0.5,"g"],["香油",null,"","少许"]]],
+  ["配料",[["香菜",15,"g"],["尖椒",20,"g","去籽切丁"],["洋葱",20,"g","切丁"],["小米辣",2,"个","点缀"]]]],
+ steps:["花生米炸熟晾凉 ※ 炸法摘要里没有。","料汁调好 ※ 是否需要煮化冰糖以视频为准。","香菜切段，尖椒、洋葱切丁，和小米辣一起铺在花生米上。","料汁里加香油拌匀，浇在花生米上。"],
+ tips:["上一版我把这组料汁误当成了糖醋排骨，这次改正了。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-lanren-menfan",chef:"隋坡",name:"懒人焖饭",tag:"生米和菜直接焖，炒香的料最后拌进去",main:"",base:1,unit:"份",
+ groups:[["焖饭",[["大米",null,"","按平时煮饭"],["胡萝卜、土豆、干香菇、火腿肠",null,"","家里有什么放什么"]]],
+  ["炒料",[["洋葱",null,"",""],["小米椒",null,"",""],["酱油",null,"",""],["盐、味精",null,"",""],["香菜",null,"","出锅撒"]]]],
+ steps:["淘好的米放进电饭锅加水，放胡萝卜、土豆、干香菇、火腿肠，直接开快速焖饭。","全程大火，洋葱炒香，下小米椒煸出辣味，加酱油煸出酱香，加盐和味精炒一下。","把炒料倒进焖好的饭里拌匀，撒香菜出锅。"],
+ tips:["这道没有克数，不能换算。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站视频","https://www.bilibili.com/video/BV1wcBQYUEhG/"]]},
+
+{id:"sui-mogu-tang",chef:"隋坡",name:"香菇五花肉汤",tag:"五花肉煸出猪油，香菇加白胡椒煮汤",main:"泡发香菇",base:750,unit:"g",
+ groups:[["主料",[["泡发香菇",750,"g"],["五花肉",500,"g"],["水",2000,"g","约"]]],
+  ["调味",[["大料",2,"个"],["葱",40,"g"],["姜",10,"g"],["盐",10,"g"],["味精",3,"g"],["白胡椒粉",2,"g"],["酱油",30,"g"],["香葱",10,"g","出锅撒"]]]],
+ steps:["五花肉煸出猪油，大料一起下去增香 ※ 前面的步骤摘要里没有，以视频为准。","加香菇和水煮出味。","加盐 {{10}}g、味精 {{3}}g、白胡椒粉 {{2}}g、酱油 {{30}}g 拌匀定味，撒香葱出锅。"],
+ tips:["菜名是我按用料推断的，可能是视频里的“蘑菇汤” ※。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-chaokao-yangrou",chef:"隋坡",name:"炒烤羊肉",tag:"大量大葱香菜，羊腿肉腌好大火炒",main:"羊腿肉",base:600,unit:"g",
+ groups:[["主料",[["羊腿肉",600,"g"],["大葱",210,"g","腌肉 20g，炒肉 190g"],["洋葱丝",80,"g"],["香菜",170,"g"]]],
+  ["调味",[["腌肉汁",70,"g","※ 配比摘要里没有"],["姜蒜水",20,"g"],["葱油",null,"","适量"],["香油",6,"g"]]]],
+ steps:["※ 我只查到用料，步骤以视频为准。"],tips:[],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+
+{id:"sui-feicui-xiaqiu",chef:"隋坡",name:"翡翠虾球",tag:"菠菜茸裹虾肉，碗芡提前兑好",main:"虾肉",base:400,unit:"g",
+ groups:[["主料",[["虾肉",400,"g"],["菠菜",250,"g","打成茸"],["淀粉",30,"g","加在菠菜茸里"]]],
+  ["腌虾",[["盐",1,"g"],["味精",1,"g"]]],
+  ["碗芡",[["水",20,"g"],["淀粉",1,"g"],["盐",1,"g"],["糖",1,"g"],["味精",1,"g"],["花雕酒",2,"g"]]],
+  ["炝锅",[["姜",2,"g"],["葱油",10,"g"]]]],
+ steps:["虾肉加盐、味精腌一下；菠菜打茸后拌入淀粉 ※ 成球手法以视频为准。","烧一锅水，同时兑碗芡：水、淀粉、盐、糖、味精搅匀，再加花雕。","水开后快速把虾球逐个下锅，关小火别翻动；开锅后用勺子翻动防粘，熟了倒出。","葱油炝姜，下虾球，烹入碗芡翻匀出锅 ※ 这一步按常规补充。"],
+ tips:[],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"]]},
+{id:"cl-kele-jichi",name:"可乐鸡翅（精准比例）",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%8F%AF%E4%B9%90%E9%B8%A1%E7%BF%85"]]},
+{id:"cl-ganguo-caihua",name:"干锅菜花",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%B9%B2%E9%94%85%E8%8F%9C%E8%8A%B1"]]},
+{id:"cl-lajiao-chaorou",name:"辣椒炒肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E8%BE%A3%E6%A4%92%E7%82%92%E8%82%89"]]},
+{id:"cl-ganguo-tudoupian",name:"干锅土豆片",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%B9%B2%E9%94%85%E5%9C%9F%E8%B1%86%E7%89%87"]]},
+{id:"cl-huiguorou",name:"回锅肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%9B%9E%E9%94%85%E8%82%89"]]},
+{id:"cl-ningmeng-shousiji",name:"柠檬手撕鸡",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E6%9F%A0%E6%AA%AC%E6%89%8B%E6%92%95%E9%B8%A1"]]},
+{id:"cl-koushuiji",name:"口水鸡",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%8F%A3%E6%B0%B4%E9%B8%A1"]]},
+{id:"cl-jiangxiangbing",name:"家庭版酱香饼",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E5%AE%B6%E5%BA%AD%E7%89%88%E9%85%B1%E9%A6%99%E9%A5%BC"]]},
+{id:"cl-wugu-jiliu",name:"香酥无骨鸡柳",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E9%A6%99%E9%85%A5%E6%97%A0%E9%AA%A8%E9%B8%A1%E6%9F%B3"]]},
+{id:"cl-hongshaorou",name:"不腻红烧肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E4%B8%8D%E8%85%BB%E7%BA%A2%E7%83%A7%E8%82%89"]]},
+{id:"cl-kaolengmian",name:"烤冷面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E7%83%A4%E5%86%B7%E9%9D%A2"]]},
+{id:"cl-jiangrou-xiaolongbao",name:"酱肉小笼包",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E9%85%B1%E8%82%89%E5%B0%8F%E7%AC%BC%E5%8C%85"]]},
+{id:"cl-zaliang-caituanzi",name:"杂粮菜团子",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E6%9D%82%E7%B2%AE%E8%8F%9C%E5%9B%A2%E5%AD%90"]]},
+{id:"cl-haixian-fensibao",name:"海鲜粉丝煲",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E6%B5%B7%E9%B2%9C%E7%B2%89%E4%B8%9D%E7%85%B2"]]},
+{id:"cl-jiangshao-yu",name:"酱烧鱼",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E9%85%B1%E7%83%A7%E9%B1%BC"]]},
+{id:"cl-cuipichang",name:"脆皮肠",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E8%84%86%E7%9A%AE%E8%82%A0"]]},
+{id:"cl-xiangsu-jipai",name:"香酥鸡排",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[29.3,"抖音","万赞"],groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E9%A6%99%E9%85%A5%E9%B8%A1%E6%8E%92"]]},
+{id:"sui-luobo-wanzi",chef:"隋坡",name:"炸萝卜丸子",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[74.8,"B站","万播放"],groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%82%B8%E8%90%9D%E5%8D%9C%E4%B8%B8%E5%AD%90"]]},
+{id:"sui-qingdun-yangrou",chef:"隋坡",name:"清炖羊肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B8%85%E7%82%96%E7%BE%8A%E8%82%89"]]},
+{id:"sui-zhasurou",chef:"隋坡",name:"炸酥肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%82%B8%E9%85%A5%E8%82%89"]]},
+{id:"sui-youla-tudou",chef:"隋坡",name:"油辣干锅土豆",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B2%B9%E8%BE%A3%E5%B9%B2%E9%94%85%E5%9C%9F%E8%B1%86"]]},
+{id:"sui-laziji",chef:"隋坡",name:"辣子鸡",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E8%BE%A3%E5%AD%90%E9%B8%A1"]]},
+{id:"sui-chayedan",chef:"隋坡",name:"溏心茶叶蛋",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%BA%8F%E5%BF%83%E8%8C%B6%E5%8F%B6%E8%9B%8B"]]},
+{id:"sui-shuizhu-niurou",chef:"隋坡",name:"水煮牛肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B0%B4%E7%85%AE%E7%89%9B%E8%82%89"]]},
+{id:"sui-huangjin-chaofan",chef:"隋坡",name:"黄金炒饭",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%BB%84%E9%87%91%E7%82%92%E9%A5%AD"]]},
+{id:"sui-qingjiao-chaorou",chef:"隋坡",name:"青椒炒肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%9D%92%E6%A4%92%E7%82%92%E8%82%89"]]},
+{id:"sui-mala-xiangguo",chef:"隋坡",name:"麻辣香锅",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%BA%BB%E8%BE%A3%E9%A6%99%E9%94%85"]]},
+{id:"sui-youmen-ji",chef:"隋坡",name:"油焖鸡",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B2%B9%E7%84%96%E9%B8%A1"]]},
+{id:"sui-hongzao-rouwan",chef:"隋坡",name:"红枣肉丸汤",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%BA%A2%E6%9E%A3%E8%82%89%E4%B8%B8%E6%B1%A4"]]},
+{id:"sui-mantou-pian",chef:"隋坡",name:"黄金馒头片",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%BB%84%E9%87%91%E9%A6%92%E5%A4%B4%E7%89%87"]]},
+{id:"sui-guoba",chef:"隋坡",name:"家常锅巴",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E5%AE%B6%E5%B8%B8%E9%94%85%E5%B7%B4"]]},
+{id:"sui-lapizi-banmian",chef:"隋坡",name:"辣皮子拌面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E8%BE%A3%E7%9A%AE%E5%AD%90%E6%8B%8C%E9%9D%A2"]]},
+{id:"sui-jisi-liangmian",chef:"隋坡",name:"鸡丝凉面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E9%B8%A1%E4%B8%9D%E5%87%89%E9%9D%A2"]]},
+
+{id:"cl-jiangshao-paigu",name:"酱烧排骨",tag:"三种酱加腐乳汁先熬香，排骨小火炖 1 小时",main:"排骨",base:1000,unit:"g",
+ groups:[["主料",[["排骨",1000,"g","2 斤"],["清水",700,"ml"],["黄酒",10,"g","约 1 勺"]]],
+  ["葱姜香料",[["葱",30,"g","斜切长段"],["姜",15,"g","切片"],["香叶",1,"g","约 3 片"],["八角",1,"粒"],["桂皮",0.6,"g"],["花椒",1,"g"]]],
+  ["酱料",[["排骨酱",30,"g"],["海鲜酱",30,"g"],["柱侯酱",15,"g"],["红腐乳汁",8,"g"],["生抽",10,"g"],["老抽",3,"g"],["蚝油",10,"g"]]]],
+ steps:["排骨洗净冷水下锅，水开后再煮 1 分钟，温水洗净。","油温热下葱段、姜片，大火炒到微焦，下香料继续炒。","香叶变金黄后转最小火让油温降下来，倒入全部酱料，小火炒到油和酱融合，再转大火熬出酱香。","酱开始冒泡时倒入清水 {{700}}ml，大火烧开。","下排骨和黄酒 {{10}}g，酒味挥发、再次开锅后盖盖，最小火炖 1 小时。","捞出料渣，大火收汁，边收边往排骨上淋汤，留一点汁拌饭。"],
+ tips:["1 小时不随重量变。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107581913/"]]},
+{id:"cl-chizhi-paigu",name:"豉汁排骨 / 蒜蓉排骨",tag:"蒜香油拌排骨，铺在芋头南瓜上蒸",main:"排骨",base:500,unit:"g",
+ groups:[["主料",[["仔排",500,"g","泡半小时去血水"],["垫底：芋头 / 南瓜 / 红薯 / 土豆",250,"g"]]],
+  ["蒜香油",[["蒜",4,"粒","拍开即可"],["油",35,"g","网友推荐也可用黄油"]]],
+  ["调味",[["豆豉",10,"g","不放就是蒜蓉排骨"],["盐",4.5,"g"],["糖",10,"g"],["生抽",5,"g"],["淀粉",25,"g"],["芝麻香油",5,"g","可不放"]]]],
+ steps:["排骨泡半小时去血水，中途血水浓就换水，沥干。","蒜和油放碗里盖个小盖，微波 2–3 分钟做成蒜香油。","排骨先加盐 {{4.5}}g、糖 {{10}}g 拌匀，再加生抽、淀粉 {{25}}g、全部蒜香油（和豆豉）拌匀。","垫底的菜铺在盘里，排骨铺在上面，上锅蒸熟 ※ 蒸多久摘要里没有，以视频为准；排骨要蒸到熟透。"],
+ tips:["这是网友按视频整理的图文版。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107527786/"]]},
+{id:"cl-jiang-gutou",name:"酱骨头",tag:"泡水敲出血水，炸香酱料，炖 90 分钟",main:"",base:1,unit:"份",
+ groups:[["主料",[["大骨头",null,"","※ 重量没写"]]],
+  ["香料调味",[["冰糖",10,"g"],["高度白酒",10,"g"],["鸡精",8,"g"],["八角",3,"g"],["桂皮",1,"g"],["花椒",2,"g"],["小茴香",4,"g"],["陈皮",2,"g"],["食用碱",3,"g","可不放"]]],
+  ["可选香料",[["白蔻、丁香、山奈、香砂",null,"","各 3 粒"],["白芷",2,"片"],["黑胡椒",3,"g"],["干辣椒",null,"","适量"]]],
+  ["酱料",[["酱料",null,"","※ 配比摘要里没有"]]]],
+ steps:["骨头泡水 2 小时，焯水撇沫，多敲几下让里面的血水出来，温水洗净。","配菜下油锅小火炸到焦黄，倒入调好的酱料炸香后关火。","酱料倒进骨头里，加糖色、冰糖、白酒和香料，加热水没过骨头。","水开转中小火炖约 90 分钟；用高压锅直接选排骨档。"],
+ tips:["这是网友的记录，酱料配比缺失 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107580352/"]]}
+];
+
+const CATS=[["牛肉",["jiang-niurou","sui-jiang-niurou","xihongshi-niunan","sui-fanqie-niunan","luobo-niurou","niunan-fan","qingdun-niuleitiao","sui-tudou-niurou","cl-jintou-banao","sui-shuizhu-niurou"]],["羊肉",["hongmen-yangpai","sui-ziran-yangrou","sui-congbao-yangrou","sui-chaokao-yangrou","sui-qingdun-yangrou"]],["鸡肉",["shuinen-jipai","jigongbao","sui-gongbao-jiding","cl-gongbao-jiding","cl-jirou-wanzi","sui-dangshen-dunji","cl-diguoji","cl-linyi-chaoji","cl-xiaoji-dunmogu","sui-kele-jichi","cl-kele-jichi","cl-ningmeng-shousiji","cl-koushuiji","cl-xiangsu-jipai","cl-wugu-jiliu","sui-laziji","sui-youmen-ji"]],["猪肉",["guobaorou","tangcu-paigu","lurou-fan","sui-huiguorou","db-hongshaorou","db-rouduan","cl-congshao-dapai","cl-bazirou","cl-jiang-dagu","cl-hongshao-paigu","cl-ganzheng-paigu","cl-lu-zhugan","cl-nongjia-yiwanxiang","sui-shizitou","sui-hongshaorou","sui-tangcu-paigu","sui-guobaorou","sui-yuxiang-rousi","sui-chao-zhugan","sui-youbao-shuangcui","cl-yuxiang-rousi","cl-huiguorou","cl-lajiao-chaorou","cl-hongshaorou","cl-cuipichang","sui-zhasurou","sui-qingjiao-chaorou","sui-hongzao-rouwan","sui-mogu-tang","cl-jiangshao-paigu","cl-chizhi-paigu","cl-jiang-gutou"]],["鱼虾",["suanbao-yu","xiahua-bao","sui-daxia-baicai","sui-youmen-daxia","sui-cujiao-yu","cl-haixian-fensibao","cl-jiangshao-yu","sui-feicui-xiaqiu"]],["蔬菜豆腐",["fengwei-qiezi","sui-congshao-doufu","cl-mapo-doufu","sui-culiu-baicai","sui-yuanbaicai","cl-shousi-baocai","cl-xin-sanxian","cl-culiu-baicai","cl-tudousi","sui-suanla-tudousi","cl-disanxian","cl-zhengcai","cl-lasi-chaodan","sui-cuchaodan","sui-mapo-doufu","sui-jianjiao-gandoufu","sui-yan-huanggua","sui-sanbuzhan","cl-qiangban-tudousi","cl-ganguo-caihua","cl-ganguo-tudoupian","sui-yuxiang-qiezi","sui-youla-tudou","sui-luobo-wanzi","sui-laocu-huasheng","sui-chayedan","sui-mala-xiangguo"]],["主食",["cl-zhajiangmian","sui-qiangguo-mian","db-dafanbao","db-niuroumian","cl-congyou-banmian","cl-malatang","cl-qieding-lumian","cl-haixian-zhou","cl-jiangxiangbing","cl-kaolengmian","cl-jiangrou-xiaolongbao","cl-zaliang-caituanzi","sui-gedatang","sui-lanren-menfan","sui-huangjin-chaofan","sui-jisi-liangmian","sui-lapizi-banmian","sui-mantou-pian","sui-guoba"]]];
+DISHES.forEach(d=>{d.chef=d.chef||"村驴"});
+const CC={"村驴":"c","隋坡":"s","老东北美食":"d"};
+let chefFilter="全部",view="all",query="";const openCats=new Set();
+let favs=new Set();try{favs=new Set(JSON.parse(localStorage.getItem("menu-favs")||"[]"))}catch(_){}
+function saveFavs(){try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}}
+function hotTxt(d){return d.hot?`${d.hot[1]} ${d.hot[0]}${d.hot[2]}`:""}
+
+/* original illustrations: [kind, sauce, pieceColors, garnish, extraKind, extraColors] */
+const ART={
+"cl-jiangshao-paigu":["chunks","#5a2a12",["#7a3418","#8f3f1c","#6b2e14"],"G"],
+"cl-chizhi-paigu":["chunks","#efe6d0",["#d9a87a","#c99a6a","#e9c26a"],"Gr"],
+"cl-jiang-gutou":["chunks","#5a2e16",["#7a3a1a","#8f4a22"],"c"],
+"cl-qiangban-tudousi":["noodles","#f1ead6",["#f0dc9a","#e9d088"],"rc"],
+"cl-xiaoji-dunmogu":["chunks","#7a4a22",["#c48a3a","#5a3a22","#b5772c"],"G"],
+"cl-haixian-zhou":["bits","#f1ecd8",["#e8643a","#f1e3c8","#c9482e"],"cG"],
+"cl-yuxiang-rousi":["noodles","#a8421c",["#b5774a","#3a2a22","#e08a3a"],"G"],
+"cl-linyi-chaoji":["chunks","#7a3a1a",["#b5772c","#5f9a3c","#c48a3a"],"r"],
+"cl-qieding-lumian":["noodles","#6b3a1c",["#e8cf8f","#5a3a6b","#5f9a3c"],""],
+"cl-kele-jichi":["chunks","#5a2a12",["#8f3f1c","#a44f22"],"s"],
+"cl-ganguo-caihua":["bits","#a8421c",["#f1e3c8","#ead7b4","#5f9a3c"],"r"],
+"cl-lajiao-chaorou":["slices","#efe6d0",["#5f9a3c","#b5774a","#7fae52"],"r"],
+"cl-ganguo-tudoupian":["slices","#a8421c",["#e9c26a","#e0b85a","#5f9a3c"],"rs"],
+"cl-huiguorou":["slices","#a8421c",["#c98a5a","#e9d9a8","#5f9a3c"],"G"],
+"cl-ningmeng-shousiji":["noodles","#f1ecd4",["#f1e3c8","#e9d9a8"],"rcu"],
+"cl-koushuiji":["slices","#a8321c",["#f1e3c8","#ead7b4"],"sG"],
+"cl-jiangxiangbing":["slices","#efe6d0",["#d9a05a","#c98a3f"],"sG"],
+"cl-wugu-jiliu":["bits","#f3ead6",["#d9a05a","#c98a3f","#e6b877"],""],
+"cl-hongshaorou":["chunks","#6b2a12",["#8f3a1c","#a4461f","#c98a5a"],""],
+"cl-kaolengmian":["slices","#c9482e",["#efd9a0","#e8c890"],"Gs"],
+"cl-jiangrou-xiaolongbao":["balls","#efe9dc",["#f6f0e0","#efe6d0"],""],
+"cl-zaliang-caituanzi":["balls","#efe9dc",["#e9c26a","#c9b26a"],""],
+"cl-haixian-fensibao":["noodles","#c9482e",["#f1ecd8","#e8643a"],"G"],
+"cl-jiangshao-yu":["fish","#6b3a1c",["#c48a5a"],"G"],
+"cl-cuipichang":["bits","#efe6d0",["#c9583a","#b5482a"],""],
+"cl-xiangsu-jipai":["slices","#f3ead6",["#d9a05a","#c98a3f","#e6b877"],""],
+"sui-kele-jichi":["chunks","#5a2a12",["#8f3f1c","#a44f22"],"s"],
+"sui-gedatang":["bits","#d9482e",["#f3e6c0","#f3c94a","#5f9a3c"],"c"],
+"sui-yuxiang-qiezi":["chunks","#a8421c",["#5a3a6b","#6b4a7a","#5f9a3c"],"G"],
+"sui-laocu-huasheng":["bits","#5a2a12",["#c98a5a","#b5774a","#5f9a3c"],"c"],
+"sui-lanren-menfan":["bits","#f1ecd8",["#e08a3a","#e9c26a","#c9583a"],"G"],
+"sui-mogu-tang":["chunks","#c9a06a",["#5a3a22","#f1e3c8"],"G"],
+"sui-chaokao-yangrou":["slices","#efe6d0",["#8a4a2a","#9a5a32","#dfe6b0"],"c"],
+"sui-feicui-xiaqiu":["balls","#f1ecd8",["#5f9a3c","#7fae52"],""],
+"sui-luobo-wanzi":["balls","#f6f0e0",["#d9a05a","#c98a3f"],""],
+"sui-qingdun-yangrou":["chunks","#efe9dc",["#c9a08a","#e9d9c8","#e08a3a"],"c"],
+"sui-zhasurou":["bits","#f3ead6",["#d9a05a","#c98a3f","#e6b877"],""],
+"sui-youla-tudou":["slices","#a8421c",["#e9c26a","#e0b85a"],"rs"],
+"sui-laziji":["bits","#efe6d0",["#c98a3f","#c9482e","#a8321c"],"s"],
+"sui-chayedan":["balls","#6b3a1c",["#8a5a3a","#a46a42"],""],
+"sui-shuizhu-niurou":["slices","#a8321c",["#8a4a2a","#9a5a32"],"rG"],
+"sui-huangjin-chaofan":["bits","#f3e6c0",["#f3c94a","#efb93a"],"G"],
+"sui-qingjiao-chaorou":["noodles","#efe6d0",["#5f9a3c","#b5774a"],""],
+"sui-mala-xiangguo":["bits","#a8321c",["#e9c26a","#5f9a3c","#c98a5a"],"rs"],
+"sui-youmen-ji":["chunks","#7a3a1a",["#b5772c","#c48a3a"],"G"],
+"sui-hongzao-rouwan":["balls","#e9d9a8",["#c98a5a","#a8321c"],"G"],
+"sui-mantou-pian":["slices","#f3ead6",["#e9c26a","#f3d98a"],""],
+"sui-guoba":["slices","#f3ead6",["#e9c26a","#d9a05a"],"s"],
+"sui-lapizi-banmian":["noodles","#a8321c",["#e8cf8f","#8a4a2a"],"G"],
+"sui-jisi-liangmian":["noodles","#c9482e",["#e8cf8f","#f1e3c8","#5f9a3c"],"s"],
+"cl-congshao-dapai":["slices","#6b3a1c",["#b5772c","#a4662a","#c48a3a"],"G"],
+"cl-gongbao-jiding":["bits","#8a3a1c",["#d9a05a","#c98a3f","#e8c890"],"rG"],
+"cl-jirou-wanzi":["balls","#efe9dc",["#f1e3c8","#ead7b4"],"g"],
+"cl-zhengcai":["leaves","#f3ead6",["#7fae52","#e9d9a8","#e08a3a"],""],
+"cl-xin-sanxian":["leaves","#f1e6d2",["#b9d48a","#d9482e","#5f9a3c"],""],
+"cl-lu-zhugan":["slices","#efe9dc",["#5a3324","#6b3d2a","#4a281c"],""],
+"cl-jintou-banao":["chunks","#6b2e16",["#8a4a2a","#a4663a","#74381c"],"c"],
+"cl-jiang-dagu":["chunks","#5a2e16",["#8f4a22","#a45a2a","#74381c"],"c"],
+"cl-culiu-baicai":["leaves","#b98a4a",["#f1ecd4","#dfe6b0","#c9d88a"],"r"],
+"cl-bazirou":["slices","#5a2a12",["#8f3f1c","#a44f22","#74300f"],"G"],
+"cl-shousi-baocai":["leaves","#efe6d0",["#b9d48a","#cfe0a0","#a4c672"],"r"],
+"cl-congyou-banmian":["noodles","#8a5a2a",["#e8cf8f","#dcc07a"],"G"],
+"cl-tudousi":["noodles","#f1ead6",["#f0dc9a","#e9d088"],"rG"],
+"cl-lasi-chaodan":["bits","#d9482e",["#f3c94a","#efb93a","#e25a3a"],"c"],
+"cl-hongshao-paigu":["chunks","#6b2a12",["#8f3a1c","#a4461f","#74290f"],""],
+"cl-nongjia-yiwanxiang":["bits","#efe6d0",["#f3c94a","#b5772c","#5f9a3c"],"r"],
+"cl-disanxian":["chunks","#6b4a2a",["#e0b85a","#5a3a6b","#5f9a3c"],""],
+"cl-ganzheng-paigu":["chunks","#efe6d0",["#c98a5a","#b5774a","#d9a06a"],"g"],
+"cl-diguoji":["chunks","#8a4a1c",["#c48a3a","#b5772c","#e9d9a8"],"G"],
+"cl-malatang":["bits","#a8321c",["#f1ecd4","#7fae52","#e9c88a"],"s"],
+"sui-daxia-baicai":["leaves","#e9a05a",["#f1ecd4","#dfe6b0","#e8643a"],""],
+"sui-tudou-niurou":["chunks","#7a3a1a",["#6b3a22","#e0b85a","#e08a3a"],"c"],
+"sui-ziran-yangrou":["bits","#efe6d0",["#8a4a2a","#9a5a32","#74381c"],"sc"],
+"sui-cuchaodan":["bits","#8a4a22",["#f3c94a","#efb93a","#f6d870"],"rg"],
+"sui-yan-huanggua":["bits","#6b3a1c",["#7fae52","#5f9a3c","#9cc66a"],"r"],
+"sui-dangshen-dunji":["chunks","#e9d9a8",["#f1e3c8","#ead7b4","#a8321c"],""],
+"sui-congbao-yangrou":["slices","#efe6d0",["#8a4a2a","#9a5a32","#dfe6b0"],"Gc"],
+"sui-shizitou":["balls","#6b2e16",["#8f4a22","#a45a2a"],"g"],
+"sui-suanla-tudousi":["noodles","#f1ead6",["#f0dc9a","#e9d088"],"r"],
+"sui-jianjiao-gandoufu":["slices","#e9d9a8",["#f1e3c8","#ead7b4","#5f9a3c"],""],
+"sui-cujiao-yu":["fish","#f1ecd8",["#d9d2c0"],"c"],
+"sui-chao-zhugan":["bits","#efe6d0",["#5a3324","#5f9a3c","#7fae52"],"r"],
+"sui-tangcu-paigu":["chunks","#7a2e16",["#8f3a1c","#a4461f","#74290f"],"s"],
+"sui-hongshaorou":["chunks","#6b2a12",["#8f3a1c","#a4461f","#c98a5a"],""],
+"sui-youmen-daxia":["bits","#c9482e",["#e8643a","#ef7a4a","#d9502e"],"G"],
+"sui-mapo-doufu":["tofu","#a8321c",["#f6efdc","#efe6cc"],"G"],
+"sui-guobaorou":["slices","#f3ead6",["#e2a13a","#d18a25","#efb857"],"oc"],
+"sui-yuxiang-rousi":["noodles","#a8421c",["#b5774a","#3a2a22","#e08a3a"],"G"],
+"sui-youbao-shuangcui":["bits","#f1ead6",["#f1e3c8","#c98a8a","#ead7b4"],"g"],
+"sui-sanbuzhan":["balls","#f6f0e0",["#f3c94a","#efb93a"],""],
+"guobaorou":["slices","#f3ead6",["#e2a13a","#d18a25","#efb857"],"oc"],
+"tangcu-paigu":["chunks","#7a2e16",["#8f3a1c","#a4461f","#74290f"],"s"],
+"shuinen-jipai":["slices","#f1e9d6",["#d9a05a","#c98a3f","#e6b877"],""],
+"luobo-niurou":["chunks","#5a3320",["#6b3a22","#7d4528","#efe8d8","#f4eede"],"g"],
+"niunan-fan":["chunks","#4a2616",["#5f321d","#73402a","#834c30"],"g"],
+"lurou-fan":["bits","#f5f1e8",["#6a3a20","#8a4f2c","#5a2f18"],"g"],
+"jigongbao":["chunks","#8a3a18",["#b9742f","#c98a3f","#4f8a3c","#c0392b"],"g"],
+"qingdun-niuleitiao":["chunks","#e8dcc0",["#8a5a3c","#9a6a48","#7c4e33"],"g"],
+"xiahua-bao":["noodles","#e9dfc8",["#f8f4e8"],"gr","balls",["#f2a58e","#ee9a80"]],
+"hongmen-yangpai":["chunks","#8c2f14",["#7a3a1e","#96502a","#e07b2a"],"c"],
+"jiang-niurou":["slices","#efe9dc",["#5a3020","#6b3a26","#4a281a"],""],
+"xihongshi-niunan":["chunks","#c8452a",["#6b3a22","#e8c56a","#d9552f","#7d4528"],"g"],
+"sui-congshao-doufu":["tofu","#a5672e",["#e9c98a","#dfb873","#f0d49c"],"G"],
+"sui-culiu-baicai":["leaves","#c9a56a",["#f1eccf","#e3e6b8","#cfe0a0"],"rk"],
+"sui-fanqie-niunan":["chunks","#cf4a2c",["#6b3a22","#7d4528","#e2603a"],"c"],
+"sui-jiang-niurou":["slices","#efe9dc",["#4f2b1c","#633624","#6f3f2a"],""],
+"sui-gongbao-jiding":["bits","#9a4a1e",["#d39a52","#c58440","#e8cf9a"],"rG"],
+"sui-qiangguo-mian":["noodles","#e2733a",["#f3e3b0"],"g","bits",["#f4d35e","#d9442b"]],
+"fengwei-qiezi":["chunks","#b06a2a",["#5b2a6e","#74398a","#c9902f"],"sc"],
+"cl-zhajiangmian":["noodles","#f0e6cf",["#f1dfae"],"u","bits",["#4a2818","#5c3220"]],
+"cl-mapo-doufu":["tofu","#b5321c",["#f5efe0","#efe6d0"],"gm"],
+"sui-huiguorou":["slices","#8a3a1c",["#c98a5a","#b06f44","#e6c6a0"],"Gr"],
+"sui-yuanbaicai":["leaves","#dfe6c0",["#dbe8a8","#c6dc8c","#eef2cf"],"r"],
+"db-dafanbao":["leaves","#7fae4a",["#8fc15a","#a6cf70"],"","bits",["#fbf8ef","#e9b93a","#fbf8ef"]],
+"db-hongshaorou":["chunks","#6e2412",["#8a3418","#a2431f","#74290f"],""],
+"db-rouduan":["chunks","#8a5a2a",["#c48a3a","#b5772c","#4f8a3c"],""],
+"suanbao-yu":["fish","#8a4a22",["#f1e8d4"],"r","bits",["#f4eccd","#efe3b8"]],
+"db-niuroumian":["noodles","#7a2a14",["#efd9a0"],"gc","chunks",["#5a3020","#6b3a26"]]
+};
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function seedOf(str){let h=2166136261;for(const c of str)h=Math.imul(h^c.charCodeAt(0),16777619);return h}
+function artSvg(id){
+  const sp=ART[id]||["chunks","#8a5a2a",["#b5772c"],""];const R=mulberry(seedOf(id));
+  const f=n=>n.toFixed(1), pick=a=>a[Math.floor(R()*a.length)];
+  const pt=(rad)=>{const a=R()*6.283,r=Math.sqrt(R())*rad;return[60+r*Math.cos(a),60+r*Math.sin(a)]};
+  const layer=(kind,cols)=>{let o="";
+    if(kind==="fish")o+=`<g transform="rotate(-18 60 60)"><path d="M92 60 l16 -13 v26 z" fill="#d8cfba"/><ellipse cx="58" cy="60" rx="38" ry="17" fill="${cols[0]}" stroke="rgba(0,0,0,.18)"/><circle cx="30" cy="56" r="2.2" fill="#2b2420"/><path d="M40 47 v26 M52 45 v30 M64 45 v30 M76 48 v24" stroke="rgba(0,0,0,.16)" stroke-width="1.5"/></g>`;
+    if(kind==="chunks")for(let i=0;i<17;i++){const[x,y]=pt(34),w=11+R()*7,h=9+R()*5;o+=`<rect x="${f(x-w/2)}" y="${f(y-h/2)}" width="${f(w)}" height="${f(h)}" rx="3" fill="${pick(cols)}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
+    if(kind==="bits")for(let i=0;i<34;i++){const[x,y]=pt(37),w=5+R()*4;o+=`<rect x="${f(x-w/2)}" y="${f(y-w/2)}" width="${f(w)}" height="${f(w*.8)}" rx="1.5" fill="${pick(cols)}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
+    if(kind==="balls")for(let i=0;i<8;i++){const[x,y]=pt(30);o+=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(6+R()*2)}" fill="${pick(cols)}"/>`}
+    if(kind==="slices")for(let i=0;i<10;i++){const[x,y]=pt(28);o+=`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(15+R()*5)}" ry="${f(8+R()*3)}" fill="${pick(cols)}" stroke="rgba(0,0,0,.12)" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
+    if(kind==="tofu")for(let i=0;i<13;i++){const[x,y]=pt(33);o+=`<rect x="${f(x-7)}" y="${f(y-7)}" width="14" height="14" rx="2" fill="${pick(cols)}" stroke="rgba(0,0,0,.1)" transform="rotate(${f(R()*90)} ${f(x)} ${f(y)})"/>`}
+    if(kind==="leaves")for(let i=0;i<15;i++){const[x,y]=pt(32),a=R()*180;o+=`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(13+R()*5)}" ry="${f(6+R()*3)}" fill="${pick(cols)}"/><line x1="${f(x-9)}" y1="${f(y)}" x2="${f(x+9)}" y2="${f(y)}" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/></g>`}
+    if(kind==="noodles")for(let i=0;i<11;i++){const y=22+i*7.5+R()*3,a=6+R()*7;o+=`<path d="M8 ${f(y)} q 13 ${f(-a)} 26 0 t 26 0 t 26 0 t 26 0" fill="none" stroke="${pick(cols)}" stroke-width="4.2" stroke-linecap="round" transform="rotate(${f(-25+R()*50)} 60 60)"/>`}
+    return o};
+  const G={g:["#4f9a3f",12,3,2],c:["#2f7d32",8,5,3],r:["#c62828",8,4,2],s:["#fff7df",22,2,1.2],G:["#cfe3a0",9,9,3.2],k:["#2b2420",7,7,5],u:["#7fbf5a",9,13,1.6],m:["#6a3a20",26,2.4,2],o:["#ef8a2a",8,12,1.5]};
+  let gar="";for(const k of sp[3]){const[col,n,w,h]=G[k];for(let i=0;i<n;i++){const[x,y]=pt(36);gar+=`<rect x="${f(x-w/2)}" y="${f(y-h/2)}" width="${w}" height="${h}" rx="${Math.min(w,h)/2}" fill="${col}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}}
+  const cid="c"+(seedOf(id)>>>0).toString(36);
+  return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="示意图"><defs><clipPath id="${cid}"><circle cx="60" cy="60" r="45"/></clipPath></defs><circle cx="60" cy="63" r="55" fill="rgba(0,0,0,.14)"/><circle cx="60" cy="60" r="55" fill="#f6f3ec"/><circle cx="60" cy="60" r="55" fill="none" stroke="#d9d3c5" stroke-width="1.5"/><circle cx="60" cy="60" r="45" fill="${sp[1]}"/><g clip-path="url(#${cid})">${layer(sp[0],sp[2])}${sp[4]?layer(sp[4],sp[5]):""}${gar}</g><circle cx="60" cy="60" r="45" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.5"/></svg>`;
+}
+const imgs={};try{DISHES.forEach(d=>{const v=localStorage.getItem("menu-img-"+d.id);if(v)imgs[d.id]=v})}catch(_){}
+function pic(id,cls){return imgs[id]?`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`:`<span class="${cls}">${artSvg(id)}</span>`}
+function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?"我的照片（只保存在这台设备）":"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
+function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}renderHero();renderMenu()}
+const UNITS={g:[["g",1],["斤",500],["lb",453.592],["oz",28.3495]]};
+const $=id=>document.getElementById(id);
+let cur=null,factor=1;
+
+function fmt(x){
+  if(x>=100) return String(Math.round(x));
+  if(x>=10) return String(Math.round(x*2)/2).replace(/\.0$/,"");
+  const r=Math.round(x*10)/10;
+  if(r===0&&x>0) return x.toFixed(2).replace(/0+$/,"");
+  return String(r).replace(/\.0$/,"");
+}
+function qty(q,fix){
+  const k=fix?1:factor;
+  return Array.isArray(q)?fmt(q[0]*k)+"–"+fmt(q[1]*k):fmt(q*k);
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function renderMenu(){
+  const row=d=>`<li><button type="button" class="rowbtn" data-id="${d.id}">${pic(d.id,"thumb")}<span class="name">${esc(d.name)}<span class="chef c-${CC[d.chef]}">${d.chef==="老东北美食"?"老东北":d.chef}</span></span><span class="base">${d.videoOnly?"仅视频":d.unit==="份"?"按份":fmt(d.base)+(d.unit==="g"?" g":" "+d.unit)}</span><span class="tag">${d.hot?`<span class="hot">${hotTxt(d)}</span>`:(view==="hot"&&!query.trim()?`<span class="hot nohot">暂无热度数据</span>`:"")}${esc(d.tag)}</span></button><button type="button" class="star" data-fav="${d.id}" aria-pressed="${favs.has(d.id)}" aria-label="${favs.has(d.id)?"取消收藏":"收藏"}${esc(d.name)}">${favs.has(d.id)?"★":"☆"}</button></li>`;
+  const ok=d=>chefFilter==="全部"||d.chef===chefFilter;
+  let html="";const q=query.trim().toLowerCase();
+  if(q){
+    const hay=d=>(d.name+" "+d.tag+" "+d.chef+" "+d.main+" "+d.groups.map(g=>g[1].map(i=>i[0]).join(" ")).join(" ")).toLowerCase();
+    const terms=q.split(/\s+/);
+    const ds=DISHES.filter(ok).filter(d=>{const h=hay(d);return terms.every(t=>h.includes(t))});
+    html=ds.length?`<p class="src">找到 ${ds.length} 道${chefFilter==="全部"?"":"（只在"+(chefFilter==="老东北美食"?"老东北":chefFilter)+"里找）"}</p><ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">没有找到「${esc(query.trim())}」。可以搜菜名、食材或调料，比如 牛腩、豆腐、柱侯酱；多个词用空格隔开。</p>`;
+  }else if(view==="all"){
+    const secs=CATS.map(([c,ids])=>[c,ids.map(id=>DISHES.find(d=>d.id===id)).filter(ok)]).filter(x=>x[1].length);
+    html=secs.map(([c,ds])=>`<details class="sec" data-cat="${c}"${openCats.has(c)?" open":""}><summary><span class="st">${c}</span><span class="cnt">${ds.length} 道</span></summary><ul class="menu">${ds.map(row).join("")}</ul></details>`).join("");
+  }else{
+    let ds=DISHES.filter(ok).filter(d=>view==="fav"?favs.has(d.id):true);
+    if(view==="hot") ds=ds.filter(d=>d.hot).sort((x,y)=>y.hot[0]-x.hot[0]).concat(ds.filter(d=>!d.hot));
+    html=ds.length?`<ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">${view==="fav"?"还没有收藏。点菜名右边的 ☆ 就能收藏，收藏只保存在这台设备的浏览器里。":"这个厨师下暂时没有热度数据。"}</p>`;
+    if(view==="hot"&&ds.length) html+=`<p class="src">热度是搜索时各平台页面显示的数字（B 站播放、抖音点赞），口径不同，不能直接比较。查得到数字的排在前面，按数字从高到低；没查到的排在后面，标“暂无热度数据”，我不做估算。</p>`;
+  }
+  $("menu").innerHTML=html;
+  const n=c=>DISHES.filter(d=>c==="全部"||d.chef===c).length;
+  $("chefs").innerHTML=["全部","村驴","隋坡","老东北美食"].map(c=>`<button type="button" class="fchip" data-chef="${c}" aria-pressed="${c===chefFilter}">${c==="老东北美食"?"老东北":c} ${n(c)}</button>`).join("");
+  $("views").innerHTML=[["all","按分类"],["fav","★ 收藏 "+favs.size],["hot","热度榜"]].map(([v,l])=>`<button type="button" class="fchip" data-view="${v}" aria-pressed="${v===view}">${l}</button>`).join("");
+}
+function toggleFav(id){favs.has(id)?favs.delete(id):favs.add(id);saveFavs()}
+function syncDishStar(){const b=$("d-star");if(!cur)return;const on=favs.has(cur.id);b.textContent=on?"★ 已收藏":"☆ 收藏";b.setAttribute("aria-pressed",String(on))}
+
+function renderBody(){
+  const d=cur;
+  const was=[...document.querySelectorAll("#d-groups details")].map(x=>x.open);
+  $("d-groups").innerHTML=d.groups.map(([title,items],i)=>
+    `<details class="card"${was[i]===false?"":" open"}><summary><h3>${esc(title)}</h3><span class="cnt">${items.length} 样</span></summary><table>${items.map(([n,q,u,note,fix])=>
+      `<tr><td>${esc(n)}${fix?'<span class="fixed">不换算</span>':""}${note&&q!==null?`<span class="n">${esc(note)}</span>`:""}</td><td class="q">${q===null?esc(note||"适量"):qty(q,fix)+" "+esc(u)}</td></tr>`
+    ).join("")}</table></details>`).join("");
+  $("d-steps").innerHTML=d.steps.map(s=>"<li>"+esc(s).replace(/\{\{([\d.]+)\}\}/g,(_,n)=>"<b>"+fmt(parseFloat(n)*factor)+"</b>")+"</li>").join("");
+  const pct=Math.round(factor*100);
+  $("factor").textContent=factor===1?"原配方用量":"是原配方的 "+(factor>=1?fmt(factor)+" 倍":pct+"%")+"。时间、火候、炖煮加水量不按比例变。";
+}
+
+function recalc(){
+  const v=parseFloat($("amt").value);
+  const sel=$("unit");
+  const per=sel.options.length?parseFloat(sel.value):1;
+  factor=(v>0&&isFinite(v))?(v*per)/cur.base:1;
+  if(!(v>0)) { $("factor").textContent=""; }
+  document.querySelectorAll("#quick .chip").forEach(c=>c.setAttribute("aria-pressed",String(Math.abs(parseFloat(c.dataset.f)-factor)<1e-6)));
+  renderBody();
+  if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
+}
+
+function openDish(id){
+  const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
+  cur=d;factor=1;
+  $("d-name").innerHTML=esc(d.name)+`<span class="chef c-${CC[d.chef]}">${d.chef}</span>`;
+  $("d-hot").textContent=[d.hot?"热度："+hotTxt(d)+"（搜索时的数字）":"",d.buzz?"口碑："+d.buzz:""].filter(Boolean).join("　");
+  $("d-hot").hidden=!(d.hot||d.buzz);
+  $("readout").hidden=!!d.videoOnly;$("d-steps-card").hidden=!!d.videoOnly;
+  syncDishStar();renderHero();$("img-msg").textContent="";$("d-tag").textContent=d.tag;
+  $("amt-label").textContent=d.unit==="份"?"我要做几份":"我有多少"+d.main;
+  const us=UNITS[d.unit]||[[d.unit,1]];
+  $("unit").innerHTML=us.map(([l,k])=>`<option value="${k}">${l}</option>`).join("");
+  $("unit").disabled=us.length===1;
+  $("amt").value=d.base;
+  $("quick").innerHTML=[0.5,1,1.5,2].map(f=>`<button type="button" class="chip" data-f="${f}" aria-pressed="${f===1}">${f===1?"原配方":f===0.5?"半份":f+" 倍"}</button>`).join("");
+  $("d-tips").innerHTML=d.tips.map(t=>"<li>"+esc(t)+"</li>").join("");
+  $("d-tips-card").hidden=!d.tips.length;
+  $("d-src").innerHTML="来源："+d.src.map(([l,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join("、")+"。想看手法细节，在 B 站或抖音搜「"+(d.chef==="隋坡"?"隋卞一做 ":d.chef+" ")+esc(d.name.replace(/（.*）/,""))+"」。";
+  renderBody();
+  $("view-menu").hidden=true;$("view-dish").hidden=false;
+  window.scrollTo(0,0);
+}
+function showMenu(){ $("view-dish").hidden=true;$("view-menu").hidden=false; }
+function route(){ const h=location.hash.slice(1); h?openDish(h):showMenu(); }
+function go(h){ if(location.hash.slice(1)===h){route();} else {location.hash=h;} setTimeout(route,0); }
+
+$("menu").addEventListener("click",e=>{const f=e.target.closest("button[data-fav]");if(f){toggleFav(f.dataset.fav);renderMenu();return}const b=e.target.closest("button[data-id]");if(b)go(b.dataset.id)});
+$("img-clear").addEventListener("click",()=>{if(cur)setImg(cur.id,null)});
+$("img-file").addEventListener("change",e=>{
+  const file=e.target.files&&e.target.files[0];e.target.value="";if(!file||!cur)return;const id=cur.id;
+  const fr=new FileReader();
+  fr.onerror=()=>{$("img-msg").textContent="这张图片读不出来，换一张试试。"};
+  fr.onload=()=>{const im=new Image();
+    im.onerror=()=>{$("img-msg").textContent="这个文件不是能识别的图片格式，换成 JPG 或 PNG 试试。"};
+    im.onload=()=>{const k=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);setImg(id,c.toDataURL("image/jpeg",.78))};
+    im.src=fr.result};
+  fr.readAsDataURL(file)});
+$("q").addEventListener("input",e=>{query=e.target.value;$("q-clear").hidden=!query;renderMenu()});
+$("q-clear").addEventListener("click",()=>{query="";$("q").value="";$("q-clear").hidden=true;renderMenu();$("q").focus()});
+$("views").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b){view=b.dataset.view;renderMenu()}});
+$("d-star").addEventListener("click",()=>{if(cur){toggleFav(cur.id);syncDishStar();renderMenu()}});
+$("chefs").addEventListener("click",e=>{const b=e.target.closest("[data-chef]");if(b){chefFilter=b.dataset.chef;renderMenu()}});
+$("menu").addEventListener("toggle",e=>{const t=e.target;if(!t.dataset||!t.dataset.cat)return;t.open?openCats.add(t.dataset.cat):openCats.delete(t.dataset.cat)},true);
+$("back").addEventListener("click",()=>{ try{history.replaceState(null,"",location.pathname+location.search)}catch(_){ } location.hash=""; showMenu(); window.scrollTo(0,0); });
+$("amt").addEventListener("input",recalc);
+$("unit").addEventListener("change",recalc);
+function dropKb(){const a=document.activeElement;if(a&&(a.id==="amt"||a.id==="q"))a.blur()}
+$("amt-done").addEventListener("click",dropKb);
+["amt","q"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();e.target.blur()}}));
+["touchstart","mousedown"].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest("input,select,textarea,#amt-done"))return;dropKb()},{passive:true}));
+window.addEventListener("scroll",()=>{const a=document.activeElement;if(a&&a.id==="amt"&&Date.now()-kbT>1000)a.blur()},{passive:true});
+let kbT=0;$("amt").addEventListener("focus",()=>{kbT=Date.now()});
+$("quick").addEventListener("click",e=>{
+  const c=e.target.closest(".chip"); if(!c) return;
+  const per=parseFloat($("unit").value)||1;
+  $("amt").value=fmt(cur.base*parseFloat(c.dataset.f)/per);
+  factor=parseFloat(c.dataset.f);
+  document.querySelectorAll("#quick .chip").forEach(x=>x.setAttribute("aria-pressed",String(x===c)));
+  renderBody();
+});
+window.addEventListener("hashchange",route);
+renderMenu();route();
+</script>
+</body>
+</html>
