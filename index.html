@@ -95,11 +95,14 @@ details.card>summary+*{margin-top:0}
 .menu .rowbtn{grid-template-columns:52px 1fr auto}
 .thumb{grid-row:1/3;width:52px;height:52px;border-radius:50%;overflow:hidden;display:block;align-self:center}
 .thumb svg,.thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.thumb img.art{transform:scale(1.5)}
 .menu .tag{grid-column:2/-1}
 .herowrap{display:flex;flex-direction:column;gap:8px}
 .heroimg{display:flex;justify-content:center;align-items:center;aspect-ratio:16/9;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .heroimg svg{height:88%;width:auto}
 .heroimg img{width:100%;height:100%;object-fit:cover;display:block}
+.heroimg img.art{width:auto;height:100%;object-fit:contain}
+.heroimg:has(img.art){background:#6e5036}
 .herobar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
 label.fchip{display:inline-block}
@@ -1122,27 +1125,127 @@ const ART={
 };
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function seedOf(str){let h=2166136261;for(const c of str)h=Math.imul(h^c.charCodeAt(0),16777619);return h}
+const ART_CACHE={};
+function hx(c){c=String(c).replace("#","");if(c.length===3)c=c.split("").map(x=>x+x).join("");const n=parseInt(c,16)||0;return[n>>16&255,n>>8&255,n&255]}
+function mix(c,t,k){const a=hx(c),b=t==="w"?[255,251,242]:[18,9,4];return"#"+a.map((v,i)=>Math.max(0,Math.min(255,Math.round(v+(b[i]-v)*k))).toString(16).padStart(2,"0")).join("")}
+function lum(c){const[r,g,b]=hx(c);return(.299*r+.587*g+.114*b)/255}
 function artSvg(id){
+  if(ART_CACHE[id])return ART_CACHE[id];
   const sp=ART[id]||["chunks","#8a5a2a",["#b5772c"],""];const R=mulberry(seedOf(id));
-  const f=n=>n.toFixed(1), pick=a=>a[Math.floor(R()*a.length)];
-  const pt=(rad)=>{const a=R()*6.283,r=Math.sqrt(R())*rad;return[60+r*Math.cos(a),60+r*Math.sin(a)]};
-  const layer=(kind,cols)=>{let o="";
-    if(kind==="fish")o+=`<g transform="rotate(-18 60 60)"><path d="M92 60 l16 -13 v26 z" fill="#d8cfba"/><ellipse cx="58" cy="60" rx="38" ry="17" fill="${cols[0]}" stroke="rgba(0,0,0,.18)"/><circle cx="30" cy="56" r="2.2" fill="#2b2420"/><path d="M40 47 v26 M52 45 v30 M64 45 v30 M76 48 v24" stroke="rgba(0,0,0,.16)" stroke-width="1.5"/></g>`;
-    if(kind==="chunks")for(let i=0;i<17;i++){const[x,y]=pt(34),w=11+R()*7,h=9+R()*5;o+=`<rect x="${f(x-w/2)}" y="${f(y-h/2)}" width="${f(w)}" height="${f(h)}" rx="3" fill="${pick(cols)}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
-    if(kind==="bits")for(let i=0;i<34;i++){const[x,y]=pt(37),w=5+R()*4;o+=`<rect x="${f(x-w/2)}" y="${f(y-w/2)}" width="${f(w)}" height="${f(w*.8)}" rx="1.5" fill="${pick(cols)}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
-    if(kind==="balls")for(let i=0;i<8;i++){const[x,y]=pt(30);o+=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(6+R()*2)}" fill="${pick(cols)}"/>`}
-    if(kind==="slices")for(let i=0;i<10;i++){const[x,y]=pt(28);o+=`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(15+R()*5)}" ry="${f(8+R()*3)}" fill="${pick(cols)}" stroke="rgba(0,0,0,.12)" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}
-    if(kind==="tofu")for(let i=0;i<13;i++){const[x,y]=pt(33);o+=`<rect x="${f(x-7)}" y="${f(y-7)}" width="14" height="14" rx="2" fill="${pick(cols)}" stroke="rgba(0,0,0,.1)" transform="rotate(${f(R()*90)} ${f(x)} ${f(y)})"/>`}
-    if(kind==="leaves")for(let i=0;i<15;i++){const[x,y]=pt(32),a=R()*180;o+=`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(13+R()*5)}" ry="${f(6+R()*3)}" fill="${pick(cols)}"/><line x1="${f(x-9)}" y1="${f(y)}" x2="${f(x+9)}" y2="${f(y)}" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/></g>`}
-    if(kind==="noodles")for(let i=0;i<11;i++){const y=22+i*7.5+R()*3,a=6+R()*7;o+=`<path d="M8 ${f(y)} q 13 ${f(-a)} 26 0 t 26 0 t 26 0 t 26 0" fill="none" stroke="${pick(cols)}" stroke-width="4.2" stroke-linecap="round" transform="rotate(${f(-25+R()*50)} 60 60)"/>`}
-    return o};
-  const G={g:["#4f9a3f",12,3,2],c:["#2f7d32",8,5,3],r:["#c62828",8,4,2],s:["#fff7df",22,2,1.2],G:["#cfe3a0",9,9,3.2],k:["#2b2420",7,7,5],u:["#7fbf5a",9,13,1.6],m:["#6a3a20",26,2.4,2],o:["#ef8a2a",8,12,1.5]};
-  let gar="";for(const k of sp[3]){const[col,n,w,h]=G[k];for(let i=0;i<n;i++){const[x,y]=pt(36);gar+=`<rect x="${f(x-w/2)}" y="${f(y-h/2)}" width="${w}" height="${h}" rx="${Math.min(w,h)/2}" fill="${col}" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`}}
-  const cid="c"+(seedOf(id)>>>0).toString(36);
-  return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="示意图"><defs><clipPath id="${cid}"><circle cx="60" cy="60" r="45"/></clipPath></defs><circle cx="60" cy="63" r="55" fill="rgba(0,0,0,.14)"/><circle cx="60" cy="60" r="55" fill="#f6f3ec"/><circle cx="60" cy="60" r="55" fill="none" stroke="#d9d3c5" stroke-width="1.5"/><circle cx="60" cy="60" r="45" fill="${sp[1]}"/><g clip-path="url(#${cid})">${layer(sp[0],sp[2])}${sp[4]?layer(sp[4],sp[5]):""}${gar}</g><circle cx="60" cy="60" r="45" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.5"/></svg>`;
+  const dish=(typeof DISHES!=="undefined"&&DISHES.find(x=>x.id===id))||{name:""};const nm=dish.name||"";
+  const f=n=>n.toFixed(1),pick=a=>a[Math.floor(R()*a.length)],rr=(a,b)=>a+R()*(b-a);
+  const kind=sp[0],sauce=sp[1];
+  const fish=kind==="fish";
+  const bowl=!fish&&(kind==="noodles"||(/汤|粥|炖|煲|干锅|地锅|麻辣烫|焖饭|香锅|面/.test(nm)&&!/锅包/.test(nm)));
+  const bone=/排骨|骨|羊排|鸡翅/.test(nm)&&kind==="chunks";
+  const C=120,CY=fish?124:122;
+  const FR=fish?0:bowl?76:68;
+  const pt=rad=>{const a=R()*6.283,r=Math.sqrt(R())*rad;return[C+r*Math.cos(a),CY+r*Math.sin(a)*(fish?.62:1)]};
+  // ---- defs
+  const cols=[...new Set([...(sp[2]||[]),...(sp[5]||[])])];
+  const gid={};let defs=`<filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.6" dy="2.6" stdDeviation="1.7" flood-color="#2a1608" flood-opacity=".42"/></filter>`;
+  defs+=`<filter id="soft"><feGaussianBlur stdDeviation="2.2"/></filter>`;
+  cols.forEach((c,i)=>{gid[c]="p"+i;defs+=`<radialGradient id="p${i}" cx="34%" cy="28%" r="78%"><stop offset="0" stop-color="${mix(c,"w",.42)}"/><stop offset=".45" stop-color="${c}"/><stop offset="1" stop-color="${mix(c,"b",.42)}"/></radialGradient>`});
+  defs+=`<linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a7550"/><stop offset=".5" stop-color="#7d5a3a"/><stop offset="1" stop-color="#5e4129"/></linearGradient>`;
+  defs+=`<radialGradient id="plate" cx="42%" cy="36%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#f3efe6"/><stop offset="1" stop-color="#d6cfc0"/></radialGradient>`;
+  defs+=`<radialGradient id="well" cx="50%" cy="50%" r="50%"><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#3a2a18" stop-opacity="${bowl?.38:.16}"/></radialGradient>`;
+  defs+=`<radialGradient id="sauce" cx="45%" cy="40%" r="62%"><stop offset="0" stop-color="${mix(sauce,"w",.2)}"/><stop offset=".6" stop-color="${sauce}"/><stop offset="1" stop-color="${mix(sauce,"b",.32)}"/></radialGradient>`;
+  defs+=`<radialGradient id="vig" cx="50%" cy="48%" r="72%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient>`;
+  defs+=`<radialGradient id="key" cx="28%" cy="22%" r="60%"><stop offset="0" stop-color="#fff6e0" stop-opacity=".22"/><stop offset="1" stop-color="#fff6e0" stop-opacity="0"/></radialGradient>`;
+  defs+=`<radialGradient id="sph" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+  defs+=`<linearGradient id="bone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf4e4"/><stop offset=".5" stop-color="#e8dcc0"/><stop offset="1" stop-color="#b8a684"/></linearGradient>`;
+  defs+=`<linearGradient id="scal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f6f7e6"/><stop offset=".55" stop-color="#d7e9a8"/><stop offset="1" stop-color="#7fb446"/></linearGradient>`;
+  defs+=`<clipPath id="food">${fish?`<ellipse cx="${C}" cy="${CY}" rx="92" ry="60"/>`:`<circle cx="${C}" cy="${CY}" r="${bowl?84:78}"/>`}</clipPath>`;
+  // ---- helpers
+  const blob=(x,y,rx,ry,irr,n,rot)=>{const p=[];for(let i=0;i<n;i++){const a=i/n*6.283,k=1+(R()*2-1)*irr;p.push([x+Math.cos(a)*rx*k,y+Math.sin(a)*ry*k])}
+    const c=p.map(([px,py])=>{const dx=px-x,dy=py-y,ca=Math.cos(rot),sa=Math.sin(rot);return[x+dx*ca-dy*sa,y+dx*sa+dy*ca]});
+    const m=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let d=`M${f(m(c[n-1],c[0])[0])} ${f(m(c[n-1],c[0])[1])}`;
+    for(let i=0;i<n;i++){const q=c[i],e=m(c[i],c[(i+1)%n]);d+=` Q${f(q[0])} ${f(q[1])} ${f(e[0])} ${f(e[1])}`}return d+"Z"};
+  const hl=(x,y,s,o)=>`<ellipse cx="${f(x-s*.32)}" cy="${f(y-s*.34)}" rx="${f(s*.34)}" ry="${f(s*.15)}" fill="#fff" opacity="${o}" transform="rotate(-32 ${f(x-s*.32)} ${f(y-s*.34)})"/>`;
+  const specks=(x,y,s,c,n,o)=>{let o2="";for(let i=0;i<n;i++)o2+=`<circle cx="${f(x+rr(-s,s)*.6)}" cy="${f(y+rr(-s,s)*.6)}" r="${f(rr(.4,1.1))}" fill="${c}" opacity="${o}"/>`;return o2};
+  const glossy=lum(sauce)<.62;
+  const pile=(n,rad)=>Array.from({length:n},()=>pt(rad)).sort((a,b)=>Math.hypot(b[0]-C,b[1]-CY)-Math.hypot(a[0]-C,a[1]-CY));
+  const near=(x,y)=>1+.18*(1-Math.min(1,Math.hypot(x-C,y-CY)/FR));
+  // ---- piece painters
+  const P={
+    chunks(c){let o="";for(const[x,y]of pile(30,FR*.8)){const s=rr(14,20)*near(x,y),rot=R()*6.28;
+      if(bone&&R()<.55){const a=R()*6.28,L=s*1.25;o+=`<rect x="${f(x)}" y="${f(y-3.4)}" width="${f(L)}" height="6.8" rx="3.4" fill="url(#bone)" transform="rotate(${f(a*57.3)} ${f(x)} ${f(y)})"/><circle cx="${f(x+Math.cos(a)*L)}" cy="${f(y+Math.sin(a)*L)}" r="4.2" fill="#f3ead6" stroke="#b9a582" stroke-width=".8"/><circle cx="${f(x+Math.cos(a)*L)}" cy="${f(y+Math.sin(a)*L)}" r="1.7" fill="#c9a77e"/>`}
+      const col=pick(c);o+=`<path d="${blob(x,y,s,s*rr(.72,.9),.2,7,rot)}" fill="url(#${gid[col]})" stroke="${mix(col,"b",.5)}" stroke-width=".7" stroke-opacity=".55"/>`;
+      if(lum(col)<.5)o+=specks(x,y,s,mix(col,"b",.55),3,.45);o+=hl(x,y,s,glossy?.42:.25)}return o},
+    bits(c){let o="";for(const[x,y]of pile(80,FR*.86)){const s=rr(6,10)*near(x,y),col=pick(c);o+=`<path d="${blob(x,y,s,s*.82,.16,5,R()*6.28)}" fill="url(#${gid[col]})" stroke="${mix(col,"b",.45)}" stroke-width=".5" stroke-opacity=".5"/>`+hl(x,y,s,.3)}return o},
+    balls(c){let o="";for(const[x,y]of pile(15,FR*.66)){const s=rr(14,17)*near(x,y),col=pick(c);o+=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(s)}" fill="url(#${gid[col]})"/><circle cx="${f(x)}" cy="${f(y)}" r="${f(s)}" fill="url(#sph)"/>`+specks(x,y,s,mix(col,"b",.35),4,.35)}return o},
+    slices(c){let o="";const avg=c.reduce((t,x)=>t+lum(x),0)/c.length,fan=lum(sauce)>.78&&avg<.45;let L=[];
+      if(fan){for(let row=0;row<2;row++)for(let k=0;k<9;k++)L.push([C-58+k*14.5+row*6,CY-26+row*50+Math.sin(k*.5)*4,1.2+rr(-.08,.08)])}
+      else L=pile(18,FR*.7).map(([x,y])=>[x,y,R()*3.14]);
+      for(const[x,y,rot]of L){const s=fan?rr(27,31):rr(24,32)*near(x,y),col=pick(c),ry=s*(fan?rr(.52,.6):rr(.5,.62));
+      o+=`<path d="${blob(x,y,s,ry,fan?.05:.08,10,rot)}" fill="url(#${gid[col]})" stroke="${mix(col,"b",.45)}" stroke-width=".8" stroke-opacity=".6"/>`;
+      const ca=Math.cos(rot),sa=Math.sin(rot);
+      if(fan){for(let k=0;k<3;k++){const off=ry*rr(-.5,.5);o+=`<path d="M${f(x-ca*s*.7-sa*off)} ${f(y-sa*s*.7+ca*off)} q${f(ca*s*.5+rr(-4,4))} ${f(sa*s*.5+rr(-6,6))} ${f(ca*s*1.4)} ${f(sa*s*1.4)}" fill="none" stroke="${mix(col,"w",.55)}" stroke-width="${f(rr(.6,1.6))}" opacity=".45"/>`}}
+      else{const off=ry*rr(-.3,.3);o+=`<path d="M${f(x-ca*s*.7-sa*off)} ${f(y-sa*s*.7+ca*off)} L${f(x+ca*s*.7-sa*off)} ${f(y+sa*s*.7+ca*off)}" stroke="${mix(col,"w",.45)}" stroke-width="${f(ry*.22)}" stroke-linecap="round" opacity=".3"/>`}
+      o+=specks(x,y,s*.8,mix(col,"b",.5),5,.3)+hl(x,y,s*.8,.28)}return o},
+    tofu(c){let o="";for(const[x,y]of pile(22,FR*.76)){const s=rr(10,12.5),col=pick(c),a=rr(-25,25);
+      o+=`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><path d="M${f(x-s)} ${f(y-s*.35)} L${f(x)} ${f(y-s*.9)} L${f(x+s)} ${f(y-s*.35)} L${f(x)} ${f(y+s*.2)}Z" fill="${mix(col,"w",.25)}"/><path d="M${f(x-s)} ${f(y-s*.35)} L${f(x)} ${f(y+s*.2)} L${f(x)} ${f(y+s*1.05)} L${f(x-s)} ${f(y+s*.5)}Z" fill="${col}"/><path d="M${f(x+s)} ${f(y-s*.35)} L${f(x)} ${f(y+s*.2)} L${f(x)} ${f(y+s*1.05)} L${f(x+s)} ${f(y+s*.5)}Z" fill="${mix(col,"b",.18)}"/><path d="M${f(x-s)} ${f(y+s*.2)} Q${f(x)} ${f(y+s*.55)} ${f(x+s)} ${f(y+s*.15)} L${f(x+s)} ${f(y+s*.5)} L${f(x)} ${f(y+s*1.05)} L${f(x-s)} ${f(y+s*.5)}Z" fill="${sauce}" opacity=".55"/></g>`}return o},
+    leaves(c){let o="";for(const[x,y]of pile(30,FR*.8)){const L=rr(16,24)*near(x,y),W=L*rr(.42,.58),col=pick(c),a=R()*360;
+      o+=`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><path d="M${f(x-L)} ${f(y)} C${f(x-L*.5)} ${f(y-W*1.15)} ${f(x+L*.45)} ${f(y-W*1.1)} ${f(x+L)} ${f(y)} C${f(x+L*.4)} ${f(y+W*.9)} ${f(x-L*.45)} ${f(y+W*1.2)} ${f(x-L)} ${f(y)}Z" fill="url(#${gid[col]})" stroke="${mix(col,"b",.3)}" stroke-width=".6" stroke-opacity=".5" opacity=".96"/>`;
+      o+=`<path d="M${f(x-L*.9)} ${f(y)} Q${f(x)} ${f(y-W*.12)} ${f(x+L*.85)} ${f(y)}" stroke="${mix(col,"w",.6)}" stroke-width="${f(W*.16)}" fill="none" stroke-linecap="round" opacity=".8"/>`;
+      for(let k=-2;k<=2;k++){if(!k)continue;const vx=x+k*L*.28;o+=`<path d="M${f(vx)} ${f(y)} q${f(L*.12)} ${f(-W*.45)} ${f(L*.22)} ${f(-W*.75)} M${f(vx)} ${f(y)} q${f(L*.12)} ${f(W*.45)} ${f(L*.22)} ${f(W*.75)}" stroke="${mix(col,"w",.45)}" stroke-width=".55" fill="none" opacity=".55"/>`}
+      o+=`<ellipse cx="${f(x-L*.2)}" cy="${f(y-W*.4)}" rx="${f(L*.3)}" ry="${f(W*.12)}" fill="#fff" opacity=".28"/></g>`}return o},
+    shrimp(c){let o="";for(const[x,y]of pile(12,FR*.68)){const r=rr(11,14),a=R()*360,col=pick(c);
+      o+=`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><path d="M${f(x+r)} ${f(y)} A${f(r)} ${f(r)} 0 1 1 ${f(x-r*.2)} ${f(y+r*.98)}" stroke="${mix(col,"b",.35)}" stroke-width="${f(r*.95)}" fill="none" stroke-linecap="round"/><path d="M${f(x+r)} ${f(y)} A${f(r)} ${f(r)} 0 1 1 ${f(x-r*.2)} ${f(y+r*.98)}" stroke="${col}" stroke-width="${f(r*.75)}" fill="none" stroke-linecap="round"/>`;
+      for(let k=0;k<5;k++){const t=-.2+k*.85,ix=x+Math.cos(t)*r*.62,iy=y+Math.sin(t)*r*.62,ox=x+Math.cos(t)*r*1.38,oy=y+Math.sin(t)*r*1.38;o+=`<path d="M${f(ix)} ${f(iy)} L${f(ox)} ${f(oy)}" stroke="${mix(col,"b",.3)}" stroke-width=".9" opacity=".7"/>`}
+      o+=`<path d="M${f(x+r*.95)} ${f(y-r*.05)} A${f(r*1.2)} ${f(r*1.2)} 0 0 0 ${f(x-r*.6)} ${f(y-r*1.1)}" stroke="#fff" stroke-width="1.6" fill="none" opacity=".45"/><path d="M${f(x-r*.2)} ${f(y+r*.98)} l${f(-r*.7)} ${f(r*.15)} l${f(r*.3)} ${f(r*.5)}Z" fill="${mix(col,"b",.15)}"/></g>`}return o},
+    noodles(c){let o="";for(let i=0;i<80;i++){const col=pick(c);let x=C+rr(-80,80),y=CY+rr(-80,80),a=R()*6.28,d=`M${f(x)} ${f(y)}`;
+      for(let k=0;k<5;k++){a+=rr(-1.3,1.3);const L=rr(16,30),cx=x+Math.cos(a)*L*.5+rr(-9,9),cy=y+Math.sin(a)*L*.5+rr(-9,9);x+=Math.cos(a)*L;y+=Math.sin(a)*L;d+=` Q${f(cx)} ${f(cy)} ${f(x)} ${f(y)}`}
+      o+=`<path d="${d}" stroke="${mix(col,"b",.3)}" stroke-width="4.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="${col}" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="${mix(col,"w",.6)}" stroke-width="1" fill="none" stroke-linecap="round" opacity=".75" transform="translate(-.6 -.8)"/>`}return o}
+  };
+  // ---- garnish painters (in 240 space)
+  const Gp={
+    g:(x,y)=>`<circle cx="${f(x)}" cy="${f(y)}" r="${f(rr(2.6,3.6))}" fill="#a6d16a" stroke="#3f8a2e" stroke-width="1.3"/><circle cx="${f(x)}" cy="${f(y)}" r="1" fill="#e9f3cf"/>`,
+    G:(x,y)=>{const a=R()*180,l=rr(11,17);return`<g transform="rotate(${f(a)} ${f(x)} ${f(y)})"><rect x="${f(x-l/2)}" y="${f(y-2.6)}" width="${f(l)}" height="5.2" rx="2.6" fill="url(#scal)" stroke="#6f9a3a" stroke-width=".5"/><ellipse cx="${f(x+l/2-1)}" cy="${f(y)}" rx="1.2" ry="2.4" fill="#4f8a2e" opacity=".6"/></g>`},
+    c:(x,y)=>{let o="";const a=R()*6.28;o+=`<path d="M${f(x)} ${f(y)} l${f(Math.cos(a)*9)} ${f(Math.sin(a)*9)}" stroke="#5f9a3a" stroke-width="1"/>`;for(let k=0;k<3;k++){const b=a+(k-1)*.9,px=x+Math.cos(b)*3.2,py=y+Math.sin(b)*3.2;o+=`<path d="${blob(px,py,3.3,2.9,.35,6,b)}" fill="${k===1?"#2f7d32":"#3c8f3a"}" stroke="#235f25" stroke-width=".4"/>`}return o},
+    r:(x,y)=>{const r=rr(3,4.2);let o=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#e2552f" fill-opacity=".55" stroke="#b71c1c" stroke-width="1.7"/>`;for(let k=0;k<3;k++)o+=`<ellipse cx="${f(x+rr(-1.5,1.5))}" cy="${f(y+rr(-1.5,1.5))}" rx=".9" ry=".55" fill="#f6dc8e"/>`;return o},
+    s:(x,y)=>`<ellipse cx="${f(x)}" cy="${f(y)}" rx="1.7" ry="1" fill="#fbf1d6" stroke="#cdb98a" stroke-width=".35" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`,
+    k:(x,y)=>`<ellipse cx="${f(x)}" cy="${f(y)}" rx="3.2" ry="2.2" fill="#2a1e18" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/><circle cx="${f(x-1)}" cy="${f(y-.8)}" r=".7" fill="#fff" opacity=".5"/>`,
+    u:(x,y)=>`<rect x="${f(x-9)}" y="${f(y-1.4)}" width="18" height="2.8" rx="1.2" fill="#9ccc5a" stroke="#4f8a2e" stroke-width=".5" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`,
+    m:(x,y)=>`<path d="${blob(x,y,2.6,2.1,.4,5,R()*6)}" fill="#6a3a20" stroke="#3e200f" stroke-width=".4"/>`,
+    o:(x,y)=>`<rect x="${f(x-8)}" y="${f(y-1.1)}" width="16" height="2.2" rx="1" fill="#f08a2c" stroke="#c4621a" stroke-width=".4" transform="rotate(${f(R()*180)} ${f(x)} ${f(y)})"/>`
+  };
+  const GN={g:16,G:11,c:9,r:10,s:34,k:9,u:12,m:34,o:12};
+  // ---- table
+  let s=`<rect width="240" height="240" fill="url(#wood)"/>`;
+  for(let i=0;i<16;i++){const y=rr(-10,250);s+=`<path d="M-10 ${f(y)} C60 ${f(y+rr(-14,14))} 170 ${f(y+rr(-14,14))} 250 ${f(y+rr(-10,10))}" stroke="${R()<.5?"#4a3220":"#b08a62"}" stroke-width="${f(rr(.5,1.6))}" fill="none" opacity="${f(rr(.12,.3))}"/>`}
+  // ---- vessel
+  if(fish){s+=`<ellipse cx="${C}" cy="${CY+6}" rx="112" ry="80" fill="#000" opacity=".28" filter="url(#soft)"/><ellipse cx="${C}" cy="${CY}" rx="112" ry="78" fill="url(#plate)"/><ellipse cx="${C}" cy="${CY}" rx="94" ry="62" fill="#f1ece2" stroke="#d8d0c0" stroke-width="1"/><ellipse cx="${C}" cy="${CY}" rx="94" ry="62" fill="url(#well)"/>`}
+  else if(bowl){s+=`<circle cx="${C}" cy="${CY+7}" r="104" fill="#000" opacity=".3" filter="url(#soft)"/><circle cx="${C}" cy="${CY}" r="102" fill="url(#plate)"/><circle cx="${C}" cy="${CY}" r="102" fill="none" stroke="#c9c1b0" stroke-width="1.2"/><circle cx="${C}" cy="${CY}" r="90" fill="#e9e3d6"/><circle cx="${C}" cy="${CY}" r="90" fill="url(#well)"/><path d="M${C-80} ${CY-40} A90 90 0 0 1 ${C+20} ${CY-89}" stroke="#fff" stroke-width="3" fill="none" opacity=".75" stroke-linecap="round"/>`}
+  else{s+=`<circle cx="${C}" cy="${CY+6}" r="108" fill="#000" opacity=".28" filter="url(#soft)"/><circle cx="${C}" cy="${CY}" r="106" fill="url(#plate)"/><circle cx="${C}" cy="${CY}" r="106" fill="none" stroke="#cbc3b2" stroke-width="1"/><circle cx="${C}" cy="${CY}" r="82" fill="#f2eee5" stroke="#ddd5c6" stroke-width="1.2"/><circle cx="${C}" cy="${CY}" r="82" fill="url(#well)"/><path d="M${C-92} ${CY-50} A106 106 0 0 1 ${C+10} ${CY-105}" stroke="#fff" stroke-width="3.5" fill="none" opacity=".8" stroke-linecap="round"/>`}
+  // ---- sauce
+  const SR=fish?0:bowl?88:74;
+  if(fish)s+=`<path d="${blob(C,CY,86,56,.06,14,0)}" fill="url(#sauce)"/>`;
+  else s+=`<path d="${blob(C,CY,SR*.96,SR*.96,.06,14,0)}" fill="url(#sauce)"/>`;
+  let gl="";for(let i=0;i<(glossy?10:5);i++){const[x,y]=pt(fish?84:SR*.85);gl+=`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(rr(1.2,4))}" ry="${f(rr(.8,2.2))}" fill="#fff8e6" opacity="${f(rr(.18,.45))}"/>`}
+  if(glossy)for(let i=0;i<7;i++){const[x,y]=pt(SR*.9||80);gl+=`<circle cx="${f(x)}" cy="${f(y)}" r="${f(rr(1.5,3.5))}" fill="none" stroke="#ffd98a" stroke-width=".6" opacity=".35"/>`}
+  s+=gl;
+  // ---- food
+  let food="";
+  if(fish){const col=(sp[2]||["#e9dcc0"])[0];const fc=mix(col,"b",0)===col?col:col,body=mix(sauce,"w",.15);food+=`<g transform="translate(${C} ${CY}) rotate(-10) scale(1.12)">`+
+    `<defs><linearGradient id="fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${mix(body,"b",.35)}"/><stop offset=".45" stop-color="${mix(col,"b",.05)}"/><stop offset="1" stop-color="${mix(body,"w",.25)}"/></linearGradient></defs>`+
+    `<path d="M66 0 L100 -28 Q93 0 100 28Z" fill="${mix(col,"b",.12)}" stroke="${mix(col,"b",.4)}" stroke-width=".8"/><path d="M70 -2 L96 -22 M72 0 L97 0 M70 2 L96 22" stroke="${mix(col,"b",.35)}" stroke-width=".6"/>`+
+    `<path d="M-12 -31 Q14 -48 42 -24 L26 -26Z" fill="${mix(col,"b",.15)}" opacity=".9"/><path d="M0 30 Q12 44 24 26Z" fill="${mix(col,"b",.12)}"/>`+
+    `<path d="M-78 0 C-68 -28 -22 -36 30 -25 C50 -21 63 -11 72 0 C63 11 50 21 30 25 C-22 36 -68 28 -78 0Z" fill="url(#fb)" stroke="${mix(col,"b",.45)}" stroke-width="1"/>`+
+    `<path d="M-78 0 C-68 -28 -22 -36 30 -25 C50 -21 63 -11 72 0 C63 11 50 21 30 25 C-22 36 -68 28 -78 0Z" fill="${sauce}" opacity=".42"/>`;
+    for(let k=0;k<6;k++){const x=-32+k*15;food+=`<path d="M${x} -26 Q${x+7} 0 ${x} 27" stroke="${mix(sauce,"b",.4)}" stroke-width="2.2" fill="none" opacity=".8"/><path d="M${x+1.8} -25 Q${x+9} 0 ${x+1.8} 26" stroke="${mix(col,"w",.7)}" stroke-width="1.6" fill="none" opacity=".7"/>`}
+    food+=`<path d="M-50 -21 Q-41 0 -50 22" stroke="${mix(col,"b",.4)}" stroke-width="1.6" fill="none"/><circle cx="-63" cy="-6" r="4.6" fill="#f4efe2" stroke="${mix(col,"b",.45)}" stroke-width=".8"/><circle cx="-63" cy="-6" r="2.6" fill="#1d1612"/><circle cx="-64" cy="-7" r=".9" fill="#fff"/><path d="M-40 -20 Q0 -30 40 -18" stroke="#fff" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round"/></g>`}
+  else food+=(/虾/.test(nm)&&!/虾滑|白菜|虾球/.test(nm)&&(kind=="bits"||kind=="balls"))?P.shrimp(sp[2]):P[kind]?P[kind](sp[2]):P.chunks(sp[2]);
+  if(sp[4]&&P[sp[4]]){const R0=FR;food+=`<g transform="translate(${C} ${CY}) scale(.62) translate(${-C} ${-CY})">${P[sp[4]](sp[5])}</g>`}
+  let gar="";for(const k of (sp[3]||"")){if(!Gp[k])continue;for(let i=0;i<GN[k];i++){const[x,y]=pt(fish?82:FR*.95);gar+=Gp[k](x,y)}}
+  s+=`<g clip-path="url(#food)"><g filter="url(#sh)">${food}</g>${gar}</g>`;
+  s+=`<rect width="240" height="240" fill="url(#key)"/><rect width="240" height="240" fill="url(#vig)"/>`;
+  const out=`<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${s}</svg>`;
+  ART_CACHE[id]="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(out);
+  return ART_CACHE[id];
 }
 const imgs={};try{DISHES.forEach(d=>{const v=localStorage.getItem("menu-img-"+d.id);if(v)imgs[d.id]=v})}catch(_){}
-function pic(id,cls){return imgs[id]?`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`:`<span class="${cls}">${artSvg(id)}</span>`}
+function pic(id,cls){return imgs[id]?`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`:`<span class="${cls}"><img class="art" src="${artSvg(id)}" alt="示意图" loading="lazy" decoding="async"></span>`}
 function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?(cloud?"我的照片（已存到你的账号）":"我的照片（保存在这台设备的浏览器）"):"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
 function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}pushImg(id);renderHero();renderMenu()}
 const UNITS={g:[["g",1],["斤",500],["lb",453.592],["oz",28.3495]]};
@@ -1177,7 +1280,7 @@ function renderMenu(){
   }else{
     let ds=DISHES.filter(ok).filter(d=>view==="fav"?favs.has(d.id):true);
     if(view==="hot") ds=ds.filter(d=>d.hot).sort((x,y)=>y.hot[0]-x.hot[0]).concat(ds.filter(d=>!d.hot));
-    html=ds.length?`<ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">${view==="fav"?"还没有收藏。点菜名右边的 ☆ 就能收藏，收藏只保存在这台设备的浏览器里。":"这个厨师下暂时没有热度数据。"}</p>`;
+    html=ds.length?`<ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">${view==="fav"?"还没有收藏。打开一道菜，点 ☆ 就能收藏。":"这个厨师下暂时没有热度数据。"}</p>`;
     if(view==="hot"&&ds.length) html+=`<p class="src">热度是搜索时各平台页面显示的数字（B 站播放、抖音点赞），口径不同，不能直接比较。查得到数字的排在前面，按数字从高到低；没查到的排在后面，标“暂无热度数据”，我不做估算。</p>`;
   }
   $("menu").innerHTML=html;
