@@ -96,6 +96,7 @@ details.card>summary+*{margin-top:0}
 .thumb{grid-row:1/3;width:52px;height:52px;border-radius:50%;overflow:hidden;display:block;align-self:center}
 .thumb svg,.thumb img{width:100%;height:100%;display:block;object-fit:cover}
 .thumb img.art{transform:scale(1.5)}
+.thumb img.art.r{transform:none}
 .menu .tag{grid-column:2/-1}
 .herowrap{display:flex;flex-direction:column;gap:8px}
 .heroimg{display:flex;justify-content:center;align-items:center;aspect-ratio:16/9;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -1240,12 +1241,22 @@ function artSvg(id){
   let gar="";for(const k of (sp[3]||"")){if(!Gp[k])continue;for(let i=0;i<GN[k];i++){const[x,y]=pt(fish?82:FR*.95);gar+=Gp[k](x,y)}}
   s+=`<g clip-path="url(#food)"><g filter="url(#sh)">${food}</g>${gar}</g>`;
   s+=`<rect width="240" height="240" fill="url(#key)"/><rect width="240" height="240" fill="url(#vig)"/>`;
-  const out=`<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${s}</svg>`;
+  const out=`<svg viewBox="0 0 240 240" width="240" height="240" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${s}</svg>`;
   ART_CACHE[id]="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(out);
   return ART_CACHE[id];
 }
 const imgs={};try{DISHES.forEach(d=>{const v=localStorage.getItem("menu-img-"+d.id);if(v)imgs[d.id]=v})}catch(_){}
-function pic(id,cls){return imgs[id]?`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`:`<span class="${cls}"><img class="art" src="${artSvg(id)}" alt="示意图" loading="lazy" decoding="async"></span>`}
+const THUMB={};let rasterQ=null;
+function pic(id,cls){if(imgs[id])return`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`;
+  if(cls==="thumb"&&THUMB[id])return`<span class="${cls}"><img class="art r" data-art="${id}" src="${THUMB[id]}" alt="示意图"></span>`;
+  return`<span class="${cls}"><img class="art" data-art="${id}" src="${artSvg(id)}" alt="示意图"></span>`}
+/* turn each thumbnail into a small bitmap once, so lists redraw instantly */
+function rasterizeThumbs(){if(rasterQ)return;rasterQ=DISHES.map(d=>d.id);
+  const step=()=>{const id=rasterQ.shift();if(!id)return;const im=new Image();
+    im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=168;c.getContext("2d").drawImage(im,40,40,160,160,0,0,168,168);
+      c.toBlob(b=>{if(b){THUMB[id]=URL.createObjectURL(b);const pre=new Image();pre.onload=()=>{document.querySelectorAll('.thumb img.art[data-art="'+id+'"]').forEach(e=>{e.src=THUMB[id];e.classList.add("r")})};pre.src=THUMB[id]}setTimeout(step,0)},"image/png")}catch(_){rasterQ=[]}};
+    im.onerror=()=>setTimeout(step,0);im.src=artSvg(id)};
+  (window.requestIdleCallback||setTimeout)(step)}
 function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?(cloud?"我的照片（已存到你的账号）":"我的照片（保存在这台设备的浏览器）"):"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
 function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}pushImg(id);renderHero();renderMenu()}
 const UNITS={g:[["g",1],["斤",500],["lb",453.592],["oz",28.3495]]};
@@ -1314,7 +1325,9 @@ function recalc(){
   if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
 }
 
+let menuY=0;
 function openDish(id){
+  if(!$("view-menu").hidden)menuY=window.scrollY;
   const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
   cur=d;factor=1;
   $("d-name").innerHTML=esc(d.name)+`<span class="chef c-${CC[d.chef]}">${d.chef}</span>`;
@@ -1335,7 +1348,7 @@ function openDish(id){
   $("view-menu").hidden=true;$("view-dish").hidden=false;
   window.scrollTo(0,0);
 }
-function showMenu(){ $("view-dish").hidden=true;$("view-menu").hidden=false; }
+function showMenu(){ const was=$("view-menu").hidden;$("view-dish").hidden=true;$("view-menu").hidden=false;if(was)window.scrollTo(0,menuY); }
 function route(){ const h=location.hash.slice(1); h?openDish(h):showMenu(); }
 function go(h){ if(location.hash.slice(1)===h){route();} else {location.hash=h;} setTimeout(route,0); }
 
@@ -1356,7 +1369,7 @@ $("views").addEventListener("click",e=>{const b=e.target.closest("[data-view]");
 $("d-star").addEventListener("click",()=>{if(cur){toggleFav(cur.id);syncDishStar();renderMenu()}});
 $("chefs").addEventListener("click",e=>{const b=e.target.closest("[data-chef]");if(b){chefFilter=b.dataset.chef;renderMenu()}});
 $("menu").addEventListener("toggle",e=>{const t=e.target;if(!t.dataset||!t.dataset.cat)return;t.open?openCats.add(t.dataset.cat):openCats.delete(t.dataset.cat)},true);
-$("back").addEventListener("click",()=>{ try{history.replaceState(null,"",location.pathname+location.search)}catch(_){ } location.hash=""; showMenu(); window.scrollTo(0,0); });
+$("back").addEventListener("click",()=>{ try{history.replaceState(null,"",location.pathname+location.search)}catch(_){ } location.hash=""; showMenu(); });
 $("amt").addEventListener("input",recalc);
 $("unit").addEventListener("change",recalc);
 function dropKb(){const a=document.activeElement;if(a&&(a.id==="amt"||a.id==="q"))a.blur()}
@@ -1374,7 +1387,7 @@ $("quick").addEventListener("click",e=>{
   renderBody();
 });
 window.addEventListener("hashchange",route);
-renderMenu();route();
+renderMenu();route();rasterizeThumbs();
 (async()=>{try{
   if(!window.claude||typeof window.claude.use!=="function")return;
   const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
