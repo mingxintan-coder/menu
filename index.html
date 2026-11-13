@@ -90,8 +90,9 @@ details.card>summary+*{margin-top:0}
 .menu li{display:flex;align-items:stretch}
 .star{flex:none;width:48px;background:none;border:0;border-left:1px solid var(--line);font-size:20px;cursor:pointer;color:var(--muted)}
 .star[aria-pressed="true"]{color:var(--warn)}
+.c-w{background:color-mix(in srgb,#2f6db5 14%,transparent);color:#2f6db5}
 .c-d{background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--ink)}
-.nohot{color:var(--muted,#888);font-weight:400;border-style:dashed}
+.hot.nohot{color:#8a8578;font-weight:400;border-style:dashed}
 .hot{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-right:6px;font-variant-numeric:tabular-nums}
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:18px 16px;color:var(--muted);font-size:14px}
 #d-star[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--panel)}
@@ -157,6 +158,7 @@ a{color:var(--accent)}
     <div class="row" id="chefs"></div>
     <div class="bar"><div class="row" id="views"></div></div>
     <div id="menu" style="display:flex;flex-direction:column;gap:10px"></div>
+    <p class="src">「网友家常」是下厨房网友的配方，用来补上村驴、隋坡暂时没有文字版的家常菜（如焖面、猪蹄）。</p>
     <p class="src">配方整理自网友按村驴、隋坡（隋卞一做）、老东北美食视频记录的文字版（下厨房、小红书、抖音等），没有逐条对照原视频核对。标「※」的地方文字版缺失或存疑，请以原视频为准。</p>
   </div>
 </section>
@@ -941,8 +943,12 @@ const DISHES=[
  tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E9%A6%99%E9%85%A5%E9%B8%A1%E6%8E%92"]]},
 {id:"sui-luobo-wanzi",chef:"隋坡",name:"炸萝卜丸子",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[74.8,"B站","万播放"],groups:[],steps:[],
  tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%82%B8%E8%90%9D%E5%8D%9C%E4%B8%B8%E5%AD%90"]]},
-{id:"sui-qingdun-yangrou",chef:"隋坡",name:"清炖羊肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
- tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B8%85%E7%82%96%E7%BE%8A%E8%82%89"]]},
+{id:"sui-qingdun-yangrou",chef:"隋坡",name:"清炖羊肉",tag:"当归党参白胡椒，高压锅上汽 15 分钟",main:"",base:1,unit:"份",
+ groups:[["主料",[["羊肉",null,"","※ 重量摘要里没有"],["白萝卜",null,"","※ 重量摘要里没有"]]],
+  ["药材香料",[["当归",2,"g"],["党参",10,"g"],["白胡椒",10,"g"],["葱姜",50,"g"],["枸杞",null,"","少许，最后放"]]],
+  ["调味",[["盐",8,"g"],["味精",2,"g"]]]],
+ steps:["※ 羊肉的前期处理摘要里没有，以视频为准（常规是泡水、焯水）。","高压锅里放羊肉，加当归、党参、白胡椒、葱姜，倒入白萝卜，盖盖开火。","上汽后关小火压 15 分钟。","等高压锅完全泄压再开盖，加盐 {{8}}g、味精 {{2}}g 搅匀，放枸杞稍煮出锅。"],
+ tips:["高压锅一定要等泄压后再开盖。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E6%B8%85%E7%82%96%E7%BE%8A%E8%82%89"]]},
 {id:"sui-zhasurou",chef:"隋坡",name:"炸酥肉",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
  tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%82%B8%E9%85%A5%E8%82%89"]]},
 {id:"sui-youla-tudou",chef:"隋坡",name:"油辣干锅土豆",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
@@ -990,12 +996,48 @@ const DISHES=[
   ["可选香料",[["白蔻、丁香、山奈、香砂",null,"","各 3 粒"],["白芷",2,"片"],["黑胡椒",3,"g"],["干辣椒",null,"","适量"]]],
   ["酱料",[["酱料",null,"","※ 配比摘要里没有"]]]],
  steps:["骨头泡水 2 小时，焯水撇沫，多敲几下让里面的血水出来，温水洗净。","配菜下油锅小火炸到焦黄，倒入调好的酱料炸香后关火。","酱料倒进骨头里，加糖色、冰糖、白酒和香料，加热水没过骨头。","水开转中小火炖约 90 分钟；用高压锅直接选排骨档。"],
- tips:["这是网友的记录，酱料配比缺失 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107580352/"]]}
+ tips:["这是网友的记录，酱料配比缺失 ※。"],src:[["下厨房文字版","https://www.xiachufang.com/recipe/107580352/"]]},
+
+{id:"cl-doujiao-menmian",name:"豆角焖面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[85.3,"B站","万播放"],groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。 想先照着做，可以看「网友家常」里的豆角焖面。"],src:[["B 站视频","https://www.bilibili.com/video/BV1QZ421T75P/"]]},
+{id:"cl-paigu-menmian",name:"豆角排骨焖面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E8%B1%86%E8%A7%92%E6%8E%92%E9%AA%A8%E7%84%96%E9%9D%A2"]]},
+{id:"cl-yangza-tang",name:"羊杂汤",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[29.1,"B站","万播放"],groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站视频","https://www.bilibili.com/video/BV1VN2MYvEep/"]]},
+{id:"cl-qingdun-yangpai",name:"清炖羊排",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,hot:[24.7,"抖音","万赞"],groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。 想先照着做，可以看「网友家常」里的清炖羊排。"],src:[["抖音","https://www.douyin.com/shipin/7582393669362534454"]]},
+{id:"cl-yangrou-huimian",name:"羊肉烩面",tag:"仅视频，暂无可靠文字配方",main:"",base:1,unit:"份",videoOnly:true,groups:[],steps:[],
+ tips:["我没找到带克数的可靠文字版，所以不列用料。看完视频把用料发给我，我可以补成可换算的菜谱。"],src:[["B 站搜索","https://search.bilibili.com/all?keyword=%E6%9D%91%E9%A9%B4%20%E7%BE%8A%E8%82%89%E7%83%A9%E9%9D%A2"]]},
+{id:"sui-kao-yangpai",chef:"隋坡",name:"烤羊排",tag:"蔬菜泥加可乐腌，先蒸 60 分钟再烤",main:"",base:1,unit:"份",
+ groups:[["主料",[["羊小排",null,"","※ 重量摘要里没有"]]],
+  ["腌料（打成泥）",[["胡萝卜",200,"g"],["洋葱",200,"g"],["葱",50,"g"],["姜",50,"g"],["花椒水",50,"g"],["香菜",50,"g"]]],
+  ["腌料（另加）",[["红曲米水",100,"g","可用酱油代替"],["盐",30,"g"],["可乐",3,"瓶"]]],
+  ["撒料",[["孜然",null,"","炒熟，压成一半粉一半粒"],["芝麻",null,"","炒熟"],["辣椒酥 / 辣椒面",null,"","剁碎"]]]],
+ steps:["胡萝卜、洋葱、葱、姜、花椒水、香菜放进破壁机打碎，倒进放羊排的盆里。","再加红曲米水、盐和 3 瓶可乐，腌制 ※ 腌多久摘要里没有。","整盆放进烤箱用蒸汽档，100 度蒸 60 分钟。","同时把孜然和芝麻炒熟，孜然用擀面杖压碎（一半粉一半粒），辣椒酥剁碎。","蒸好的羊排改刀，220 度烤 10 分钟。","取出撒孜然、芝麻、辣椒面，再 220 度烤 3 分钟。"],
+ tips:["温度和时间不随量变。","家里没有蒸烤箱，可以先上锅蒸 ※ 这是我补充的，视频里用的是烤箱蒸。"],src:[["文字版思维导图","https://mm.edrawsoft.cn/template/1575948"],["B 站搜索","https://search.bilibili.com/all?keyword=%E9%9A%8B%E5%8D%9E%E4%B8%80%E5%81%9A%20%E7%83%A4%E7%BE%8A%E6%8E%92"]]},
+{id:"wy-doujiao-menmian",chef:"网友家常",name:"豆角焖面",tag:"五花肉爆香炖豆角，面铺上面小火焖，中途翻面",main:"豆角",base:500,unit:"g",
+ groups:[["主料",[["豆角",500,"g","去两头，掰成两段"],["五花肉",150,"g","切薄片"],["鲜切面",600,"g"]]],
+  ["炒菜",[["油",15,"ml"],["盐",2,"g"],["水",400,"ml","和菜持平即可"]]],
+  ["料汁",[["香葱",3,"根","切碎"],["蒜",[6,7],"瓣","切碎"],["红辣椒",1,"个","切碎"],["生抽",20,"ml"],["油",15,"ml"],["白开水",15,"ml"],["盐",2,"g"]]]],
+ steps:["锅里放油，下五花肉爆香到略焦。","下豆角翻炒，加盐 {{2}}g。","加水约 {{400}}ml，和菜持平，烧开后转小火。","面条抖散，均匀铺在菜上，盖盖小火焖。","这时调料汁：香葱、蒜、红辣椒切碎，和生抽、油、白开水、盐拌匀。","水收到一半（约 8–10 分钟），用筷子把面抖散翻个面，盖盖继续小火焖。","※ 最后一步摘要里没有：一般是水快收干时淋入料汁，翻拌均匀出锅。"],
+ tips:["料汁里加油，面条才不粘、根根分明。","中途翻面能让面条熟得更均匀。","这不是村驴的版本，是下厨房网友的配方。"],src:[["下厨房","https://www.xiachufang.com/recipe/103608086/"]]},
+{id:"wy-hongshao-zhuti",chef:"网友家常",name:"红烧猪蹄",tag:"冰糖炒糖色上色，小火焖 1 小时再收汁",main:"猪蹄",base:500,unit:"g",
+ groups:[["主料",[["猪蹄",500,"g","剁块"],["开水",null,"","没过猪蹄",true]]],
+  ["焯水",[["料酒",2,"瓶盖"],["姜",5,"片"]]],
+  ["红烧",[["冰糖",[20,30],"g","约两汤勺"],["生抽",2,"汤勺"],["料酒",2,"汤勺"],["盐",1,"茶匙","收汁前加"]]],
+  ["香料",[["八角",2,"个"],["桂皮",1,"小块"],["香叶",2,"片"],["小茴香",null,"","指尖一小撮"],["独蒜",2,"个"],["干辣椒",2,"根","可不放"],["山楂片",3,"片","可不放"]]]],
+ steps:["猪蹄冷水下锅，加料酒和姜片，水开撇去浮沫，再焯 5–10 分钟，捞出洗净。","热锅冷油，下冰糖，小火炒出枣红色的糖色。","倒入猪蹄快速翻炒，让每块都均匀上色。","下八角、桂皮、独蒜、小茴香、干辣椒炒出香味。","加生抽和料酒翻匀，倒开水没过猪蹄，放香叶和山楂片。","大火烧开转小火焖 1 小时；之后每隔 10 分钟用筷子戳一下，不够软烂就继续炖。","软烂后加一茶匙盐，开大火收汁 5–10 分钟，期间勤翻防止糊底。"],
+ tips:["1 小时是按 500g 说的，量大就多炖，以筷子能轻松戳透为准。","这不是村驴或隋坡的版本，是下厨房网友的配方。"],src:[["下厨房","https://www.xiachufang.com/recipe/104222179/"]]},
+{id:"wy-qingdun-yangpai",chef:"网友家常",name:"清炖羊排",tag:"焯水后直接下开水锅，小火炖 1.5 小时",main:"羊排",base:1000,unit:"g",
+ groups:[["主料",[["羊排",1000,"g"],["葱",1,"根"],["姜",4,"片"],["花椒",10,"粒"],["盐",1,"勺"]]],
+  ["蘸料",[["醋",2,"勺"],["生抽",2,"勺"],["白糖",1,"勺"],["蚝油",1,"勺"],["香菜",null,"","少许"]]]],
+ steps:["羊排洗干净，冷水下锅焯水。","旁边另烧一锅开水，焯好的羊排捞出直接放进去，加葱、姜、花椒。","小火慢炖 1.5 小时；出锅前加盐调味 ※ 加盐时机原文没写。","醋、生抽、白糖、蚝油、香菜调成蘸料。"],
+ tips:["1.5 小时不随重量变。","这不是村驴的版本，是下厨房网友的配方。"],src:[["下厨房","https://www.xiachufang.com/recipe/106699054/"]]}
 ];
 
-const CATS=[["牛肉",["jiang-niurou","sui-jiang-niurou","xihongshi-niunan","sui-fanqie-niunan","luobo-niurou","niunan-fan","qingdun-niuleitiao","sui-tudou-niurou","cl-jintou-banao","sui-shuizhu-niurou"]],["羊肉",["hongmen-yangpai","sui-ziran-yangrou","sui-congbao-yangrou","sui-chaokao-yangrou","sui-qingdun-yangrou"]],["鸡肉",["shuinen-jipai","jigongbao","sui-gongbao-jiding","cl-gongbao-jiding","cl-jirou-wanzi","sui-dangshen-dunji","cl-diguoji","cl-linyi-chaoji","cl-xiaoji-dunmogu","sui-kele-jichi","cl-kele-jichi","cl-ningmeng-shousiji","cl-koushuiji","cl-xiangsu-jipai","cl-wugu-jiliu","sui-laziji","sui-youmen-ji"]],["猪肉",["guobaorou","tangcu-paigu","lurou-fan","sui-huiguorou","db-hongshaorou","db-rouduan","cl-congshao-dapai","cl-bazirou","cl-jiang-dagu","cl-hongshao-paigu","cl-ganzheng-paigu","cl-lu-zhugan","cl-nongjia-yiwanxiang","sui-shizitou","sui-hongshaorou","sui-tangcu-paigu","sui-guobaorou","sui-yuxiang-rousi","sui-chao-zhugan","sui-youbao-shuangcui","cl-yuxiang-rousi","cl-huiguorou","cl-lajiao-chaorou","cl-hongshaorou","cl-cuipichang","sui-zhasurou","sui-qingjiao-chaorou","sui-hongzao-rouwan","sui-mogu-tang","cl-jiangshao-paigu","cl-chizhi-paigu","cl-jiang-gutou"]],["鱼虾",["suanbao-yu","xiahua-bao","sui-daxia-baicai","sui-youmen-daxia","sui-cujiao-yu","cl-haixian-fensibao","cl-jiangshao-yu","sui-feicui-xiaqiu"]],["蔬菜豆腐",["fengwei-qiezi","sui-congshao-doufu","cl-mapo-doufu","sui-culiu-baicai","sui-yuanbaicai","cl-shousi-baocai","cl-xin-sanxian","cl-culiu-baicai","cl-tudousi","sui-suanla-tudousi","cl-disanxian","cl-zhengcai","cl-lasi-chaodan","sui-cuchaodan","sui-mapo-doufu","sui-jianjiao-gandoufu","sui-yan-huanggua","sui-sanbuzhan","cl-qiangban-tudousi","cl-ganguo-caihua","cl-ganguo-tudoupian","sui-yuxiang-qiezi","sui-youla-tudou","sui-luobo-wanzi","sui-laocu-huasheng","sui-chayedan","sui-mala-xiangguo"]],["主食",["cl-zhajiangmian","sui-qiangguo-mian","db-dafanbao","db-niuroumian","cl-congyou-banmian","cl-malatang","cl-qieding-lumian","cl-haixian-zhou","cl-jiangxiangbing","cl-kaolengmian","cl-jiangrou-xiaolongbao","cl-zaliang-caituanzi","sui-gedatang","sui-lanren-menfan","sui-huangjin-chaofan","sui-jisi-liangmian","sui-lapizi-banmian","sui-mantou-pian","sui-guoba"]]];
+const CATS=[["牛肉",["jiang-niurou","sui-jiang-niurou","xihongshi-niunan","sui-fanqie-niunan","luobo-niurou","niunan-fan","qingdun-niuleitiao","sui-tudou-niurou","cl-jintou-banao","sui-shuizhu-niurou"]],["羊肉",["hongmen-yangpai","sui-ziran-yangrou","sui-congbao-yangrou","sui-chaokao-yangrou","sui-qingdun-yangrou","sui-kao-yangpai","cl-qingdun-yangpai","wy-qingdun-yangpai","cl-yangza-tang"]],["鸡肉",["shuinen-jipai","jigongbao","sui-gongbao-jiding","cl-gongbao-jiding","cl-jirou-wanzi","sui-dangshen-dunji","cl-diguoji","cl-linyi-chaoji","cl-xiaoji-dunmogu","sui-kele-jichi","cl-kele-jichi","cl-ningmeng-shousiji","cl-koushuiji","cl-xiangsu-jipai","cl-wugu-jiliu","sui-laziji","sui-youmen-ji"]],["猪肉",["guobaorou","tangcu-paigu","lurou-fan","sui-huiguorou","db-hongshaorou","db-rouduan","cl-congshao-dapai","cl-bazirou","cl-jiang-dagu","cl-hongshao-paigu","cl-ganzheng-paigu","cl-lu-zhugan","cl-nongjia-yiwanxiang","sui-shizitou","sui-hongshaorou","sui-tangcu-paigu","sui-guobaorou","sui-yuxiang-rousi","sui-chao-zhugan","sui-youbao-shuangcui","cl-yuxiang-rousi","cl-huiguorou","cl-lajiao-chaorou","cl-hongshaorou","cl-cuipichang","sui-zhasurou","sui-qingjiao-chaorou","sui-hongzao-rouwan","sui-mogu-tang","cl-jiangshao-paigu","cl-chizhi-paigu","cl-jiang-gutou","wy-hongshao-zhuti"]],["鱼虾",["suanbao-yu","xiahua-bao","sui-daxia-baicai","sui-youmen-daxia","sui-cujiao-yu","cl-haixian-fensibao","cl-jiangshao-yu","sui-feicui-xiaqiu"]],["蔬菜豆腐",["fengwei-qiezi","sui-congshao-doufu","cl-mapo-doufu","sui-culiu-baicai","sui-yuanbaicai","cl-shousi-baocai","cl-xin-sanxian","cl-culiu-baicai","cl-tudousi","sui-suanla-tudousi","cl-disanxian","cl-zhengcai","cl-lasi-chaodan","sui-cuchaodan","sui-mapo-doufu","sui-jianjiao-gandoufu","sui-yan-huanggua","sui-sanbuzhan","cl-qiangban-tudousi","cl-ganguo-caihua","cl-ganguo-tudoupian","sui-yuxiang-qiezi","sui-youla-tudou","sui-luobo-wanzi","sui-laocu-huasheng","sui-chayedan","sui-mala-xiangguo"]],["主食",["cl-zhajiangmian","sui-qiangguo-mian","db-dafanbao","db-niuroumian","cl-congyou-banmian","cl-malatang","cl-qieding-lumian","cl-haixian-zhou","cl-jiangxiangbing","cl-kaolengmian","cl-jiangrou-xiaolongbao","cl-zaliang-caituanzi","sui-gedatang","sui-lanren-menfan","sui-huangjin-chaofan","sui-jisi-liangmian","sui-lapizi-banmian","sui-mantou-pian","sui-guoba","cl-doujiao-menmian","cl-paigu-menmian","wy-doujiao-menmian","cl-yangrou-huimian"]]];
 DISHES.forEach(d=>{d.chef=d.chef||"村驴"});
-const CC={"村驴":"c","隋坡":"s","老东北美食":"d"};
+const CC={"村驴":"c","隋坡":"s","老东北美食":"d","网友家常":"w"};
 let chefFilter="全部",view="all",query="";const openCats=new Set();
 let favs=new Set();try{favs=new Set(JSON.parse(localStorage.getItem("menu-favs")||"[]"))}catch(_){}
 function saveFavs(){try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}pushFavs()}
@@ -1010,6 +1052,15 @@ function hotTxt(d){return d.hot?`${d.hot[1]} ${d.hot[0]}${d.hot[2]}`:""}
 
 /* original illustrations: [kind, sauce, pieceColors, garnish, extraKind, extraColors] */
 const ART={
+"cl-doujiao-menmian":["noodles","#9a6a32",["#e8cf8f","#dcc07a","#6f9e3c"],"m"],
+"cl-paigu-menmian":["noodles","#8a5a2a",["#e8cf8f","#dcc07a","#6f9e3c"],"","chunks",["#8f4a22","#a45a2a"]],
+"wy-doujiao-menmian":["noodles","#a06e36",["#ecd496","#dcc07a","#5f9a3c"],"gr"],
+"cl-yangza-tang":["bits","#efe6d0",["#8a7060","#b09080","#6b4a3a","#d9c8b0"],"cG"],
+"cl-qingdun-yangpai":["chunks","#efe6d6",["#c9a08a","#d9b8a0","#b58a70"],"c"],
+"wy-qingdun-yangpai":["chunks","#efe9dc",["#c9a08a","#d9b8a0","#e08a3a"],"c"],
+"cl-yangrou-huimian":["noodles","#e9dcc0",["#f1e3c8","#ead7b4"],"c","slices",["#9a6a52","#b58a70"]],
+"sui-kao-yangpai":["chunks","#efe6d0",["#8a4a2a","#a45a2a","#6b2e14"],"sc"],
+"wy-hongshao-zhuti":["chunks","#6b2a12",["#8f3a1c","#b5582a","#c98a5a"],"s"],
 "cl-jiangshao-paigu":["chunks","#5a2a12",["#7a3418","#8f3f1c","#6b2e14"],"G"],
 "cl-chizhi-paigu":["chunks","#efe6d0",["#d9a87a","#c99a6a","#e9c26a"],"Gr"],
 "cl-jiang-gutou":["chunks","#5a2e16",["#7a3a1a","#8f4a22"],"c"],
@@ -1301,7 +1352,7 @@ function renderMenu(){
   }
   $("menu").innerHTML=html;
   const n=c=>DISHES.filter(d=>c==="全部"||d.chef===c).length;
-  $("chefs").innerHTML=["全部","村驴","隋坡","老东北美食"].map(c=>`<button type="button" class="fchip" data-chef="${c}" aria-pressed="${c===chefFilter}">${c==="老东北美食"?"老东北":c} ${n(c)}</button>`).join("");
+  $("chefs").innerHTML=["全部","村驴","隋坡","老东北美食","网友家常"].map(c=>`<button type="button" class="fchip" data-chef="${c}" aria-pressed="${c===chefFilter}">${c==="老东北美食"?"老东北":c} ${n(c)}</button>`).join("");
   $("views").innerHTML=[["all","按分类"],["fav","★ 收藏 "+favs.size],["hot","热度榜"]].map(([v,l])=>`<button type="button" class="fchip" data-view="${v}" aria-pressed="${v===view}">${l}</button>`).join("");
 }
 function toggleFav(id){favs.has(id)?favs.delete(id):favs.add(id);saveFavs()}
@@ -1330,7 +1381,7 @@ function recalc(){
   if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
 }
 
-const APP_VERSION="v2.3",APP_DATE="2026-11-12";
+const APP_VERSION="v2.4",APP_DATE="2026-11-12";
 function openDish(id){
   const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
   cur=d;factor=1;
