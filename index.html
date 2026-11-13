@@ -46,6 +46,10 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
 .wrap{max-width:680px;margin:0 auto;padding:20px 16px 56px;display:flex;flex-direction:column;gap:18px}
+#view-dish{position:fixed;inset:0;z-index:50;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--bg);padding:calc(20px + env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))}
+#view-dish[hidden]{display:none}
+#view-dish>div{max-width:648px;margin:0 auto}
+.ver{font-size:12px;color:var(--muted,#888);margin-top:-8px}
 h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
 h1{font-size:30px;font-weight:900;letter-spacing:.02em}
 h2{font-size:26px;font-weight:900}
@@ -146,6 +150,7 @@ a{color:var(--accent)}
   <div style="display:flex;flex-direction:column;gap:18px">
     <header>
       <h1>村驴 · 隋坡 · 老东北</h1>
+      <p class="ver" id="ver"></p>
       <p class="sub">按你手里的食材重量换算调料。点分类展开，点菜名看用料和步骤。配图是示意图，可以换成自己的照片。</p>
     </header>
     <div class="search"><label for="q" class="vh">搜索</label><input id="q" type="search" placeholder="搜菜名、食材、调料" autocomplete="off" enterkeyhint="search"><button type="button" id="q-clear" class="fchip" hidden>清除</button></div>
@@ -1325,9 +1330,8 @@ function recalc(){
   if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
 }
 
-let menuY=0;
+const APP_VERSION="v2.1",APP_DATE="2026-11-12";
 function openDish(id){
-  if(!$("view-menu").hidden)menuY=window.scrollY;
   const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
   cur=d;factor=1;
   $("d-name").innerHTML=esc(d.name)+`<span class="chef c-${CC[d.chef]}">${d.chef}</span>`;
@@ -1345,12 +1349,12 @@ function openDish(id){
   $("d-tips-card").hidden=!d.tips.length;
   $("d-src").innerHTML="来源："+d.src.map(([l,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join("、")+"。想看手法细节，在 B 站或抖音搜「"+(d.chef==="隋坡"?"隋卞一做 ":d.chef+" ")+esc(d.name.replace(/（.*）/,""))+"」。";
   renderBody();
-  $("view-menu").hidden=true;$("view-dish").hidden=false;
-  window.scrollTo(0,0);
+  $("view-dish").hidden=false;$("view-dish").scrollTop=0;
 }
-function showMenu(){ const was=$("view-menu").hidden;$("view-dish").hidden=true;$("view-menu").hidden=false;if(was)window.scrollTo(0,menuY); }
-function route(){ const h=location.hash.slice(1); h?openDish(h):showMenu(); }
-function go(h){ if(location.hash.slice(1)===h){route();} else {location.hash=h;} setTimeout(route,0); }
+function showMenu(){ $("view-dish").hidden=true; }
+function route(){ const h=location.hash.slice(1); if(!h){pushed=false;return showMenu()} if(cur&&cur.id===h&&!$("view-dish").hidden)return; openDish(h); }
+let pushed=false;
+function go(h){ if(location.hash.slice(1)!==h){pushed=true;try{location.hash=h}catch(_){}} openDish(h); }
 
 $("menu").addEventListener("click",e=>{const f=e.target.closest("button[data-fav]");if(f){toggleFav(f.dataset.fav);renderMenu();return}const b=e.target.closest("button[data-id]");if(b)go(b.dataset.id)});
 $("img-clear").addEventListener("click",()=>{if(cur)setImg(cur.id,null)});
@@ -1369,14 +1373,14 @@ $("views").addEventListener("click",e=>{const b=e.target.closest("[data-view]");
 $("d-star").addEventListener("click",()=>{if(cur){toggleFav(cur.id);syncDishStar();renderMenu()}});
 $("chefs").addEventListener("click",e=>{const b=e.target.closest("[data-chef]");if(b){chefFilter=b.dataset.chef;renderMenu()}});
 $("menu").addEventListener("toggle",e=>{const t=e.target;if(!t.dataset||!t.dataset.cat)return;t.open?openCats.add(t.dataset.cat):openCats.delete(t.dataset.cat)},true);
-$("back").addEventListener("click",()=>{ try{history.replaceState(null,"",location.pathname+location.search)}catch(_){ } location.hash=""; showMenu(); });
+$("back").addEventListener("click",()=>{ if(pushed){pushed=false;history.back();return} try{history.replaceState(null,"",location.pathname+location.search)}catch(_){ } showMenu(); });
 $("amt").addEventListener("input",recalc);
 $("unit").addEventListener("change",recalc);
 function dropKb(){const a=document.activeElement;if(a&&(a.id==="amt"||a.id==="q"))a.blur()}
 $("amt-done").addEventListener("click",dropKb);
 ["amt","q"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();e.target.blur()}}));
 ["touchstart","mousedown"].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest("input,select,textarea,#amt-done"))return;dropKb()},{passive:true}));
-window.addEventListener("scroll",()=>{const a=document.activeElement;if(a&&a.id==="amt"&&Date.now()-kbT>1000)a.blur()},{passive:true});
+const kbScroll=()=>{const a=document.activeElement;if(a&&a.id==="amt"&&Date.now()-kbT>1000)a.blur()};window.addEventListener("scroll",kbScroll,{passive:true});$("view-dish").addEventListener("scroll",kbScroll,{passive:true});
 let kbT=0;$("amt").addEventListener("focus",()=>{kbT=Date.now()});
 $("quick").addEventListener("click",e=>{
   const c=e.target.closest(".chip"); if(!c) return;
@@ -1387,6 +1391,7 @@ $("quick").addEventListener("click",e=>{
   renderBody();
 });
 window.addEventListener("hashchange",route);
+$("ver").textContent="版本 "+APP_VERSION+" · "+APP_DATE+" · "+DISHES.length+" 道菜";
 renderMenu();route();rasterizeThumbs();
 (async()=>{try{
   if(!window.claude||typeof window.claude.use!=="function")return;
