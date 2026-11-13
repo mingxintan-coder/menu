@@ -989,7 +989,14 @@ DISHES.forEach(d=>{d.chef=d.chef||"村驴"});
 const CC={"村驴":"c","隋坡":"s","老东北美食":"d"};
 let chefFilter="全部",view="all",query="";const openCats=new Set();
 let favs=new Set();try{favs=new Set(JSON.parse(localStorage.getItem("menu-favs")||"[]"))}catch(_){}
-function saveFavs(){try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}}
+function saveFavs(){try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}pushFavs()}
+/* cloud sync (only inside Claude; elsewhere claude.use is absent and this is a no-op) */
+let cloud=null;const cloudBusy={},cloudDirty={};
+async function cloudWrite(key,fn){if(!cloud)return;if(cloudBusy[key]){cloudDirty[key]=true;return}cloudBusy[key]=true;
+  try{do{cloudDirty[key]=false;await fn(cloud.doc(key))}while(cloudDirty[key])}catch(_){}cloudBusy[key]=false}
+function pushFavs(){cloudWrite("favs",r=>r.set({ids:[...favs],t:Date.now()}))}
+function pushImg(id){const v=imgs[id];cloudWrite("img-"+id,r=>v&&v.length<250000?r.set({src:v,t:Date.now()}):r.delete())}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(_){}
 function hotTxt(d){return d.hot?`${d.hot[1]} ${d.hot[0]}${d.hot[2]}`:""}
 
 /* original illustrations: [kind, sauce, pieceColors, garnish, extraKind, extraColors] */
@@ -1136,8 +1143,8 @@ function artSvg(id){
 }
 const imgs={};try{DISHES.forEach(d=>{const v=localStorage.getItem("menu-img-"+d.id);if(v)imgs[d.id]=v})}catch(_){}
 function pic(id,cls){return imgs[id]?`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`:`<span class="${cls}">${artSvg(id)}</span>`}
-function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?"我的照片（只保存在这台设备）":"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
-function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}renderHero();renderMenu()}
+function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?(cloud?"我的照片（已存到你的账号）":"我的照片（保存在这台设备的浏览器）"):"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
+function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}pushImg(id);renderHero();renderMenu()}
 const UNITS={g:[["g",1],["斤",500],["lb",453.592],["oz",28.3495]]};
 const $=id=>document.getElementById(id);
 let cur=null,factor=1;
@@ -1265,6 +1272,23 @@ $("quick").addEventListener("click",e=>{
 });
 window.addEventListener("hashchange",route);
 renderMenu();route();
+(async()=>{try{
+  if(!window.claude||typeof window.claude.use!=="function")return;
+  const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
+  if(!db||!user)return;const uid=await user.id();if(!uid)return;
+  const col=db.collection("data/users/"+uid);const snap=await col.get();
+  const known=new Set(DISHES.map(d=>d.id));let remoteFavs=null;
+  snap.docs.forEach(x=>{const v=x.data()||{};
+    if(x.id==="favs"&&Array.isArray(v.ids))remoteFavs=v.ids.filter(i=>known.has(i));
+    else if(x.id.startsWith("img-")&&typeof v.src==="string"&&known.has(x.id.slice(4))&&!imgs[x.id.slice(4)])imgs[x.id.slice(4)]=v.src;});
+  cloud=col;
+  const merged=new Set([...(remoteFavs||[]),...favs]);
+  const needPush=!remoteFavs||merged.size!==remoteFavs.length;
+  favs=merged;try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}
+  Object.keys(imgs).forEach(id=>{if(!snap.docs.some(x=>x.id==="img-"+id))pushImg(id)});
+  if(needPush)pushFavs();
+  renderMenu();if(cur){syncDishStar();renderHero()}
+}catch(_){}})();
 </script>
 </body>
 </html>
