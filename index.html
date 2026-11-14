@@ -96,6 +96,8 @@ details.card>summary+*{margin-top:0}
 .hot{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-right:6px;font-variant-numeric:tabular-nums}
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:18px 16px;color:var(--muted);font-size:14px}
 #d-star[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--panel)}
+#d-done[aria-pressed="true"]{background:var(--accent,#1f6b45);border-color:var(--accent,#1f6b45);color:var(--panel)}
+.done{font-family:var(--body);font-size:11px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap;color:#fff;background:#1f6b45}
 
 .menu .rowbtn{grid-template-columns:52px 1fr auto}
 .thumb{grid-row:1/3;width:52px;height:52px;border-radius:50%;overflow:hidden;display:block;align-self:center}
@@ -170,7 +172,7 @@ a{color:var(--accent)}
       <h2 id="d-name"></h2>
       <p class="sub" id="d-tag"></p>
       <p class="sub" id="d-hot"></p>
-      <button type="button" class="fchip" id="d-star" style="margin-top:8px"></button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="fchip" id="d-star"></button><button type="button" class="fchip" id="d-done"></button></div>
     </header>
 
     <div class="herowrap">
@@ -2420,11 +2422,14 @@ DISHES.forEach(d=>{d.chef=d.chef||"村驴"});
 const CC={"村驴":"c","隋坡":"s","老东北美食":"d","网友家常":"w"};
 let chefFilter="全部",view="all",query="";const openCats=new Set();
 let favs=new Set();try{favs=new Set(JSON.parse(localStorage.getItem("menu-favs")||"[]"))}catch(_){}
+let done=new Set();try{done=new Set(JSON.parse(localStorage.getItem("menu-done")||"[]"))}catch(_){}
+function saveDone(){try{localStorage.setItem("menu-done",JSON.stringify([...done]))}catch(_){}pushDone()}
 function saveFavs(){try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}pushFavs()}
 /* cloud sync (only inside Claude; elsewhere claude.use is absent and this is a no-op) */
 let cloud=null;const cloudBusy={},cloudDirty={};
 async function cloudWrite(key,fn){if(!cloud)return;if(cloudBusy[key]){cloudDirty[key]=true;return}cloudBusy[key]=true;
   try{do{cloudDirty[key]=false;await fn(cloud.doc(key))}while(cloudDirty[key])}catch(_){}cloudBusy[key]=false}
+function pushDone(){cloudWrite("done",r=>r.set({ids:[...done],t:Date.now()}))}
 function pushFavs(){cloudWrite("favs",r=>r.set({ids:[...favs],t:Date.now()}))}
 function pushImg(id){const v=imgs[id];cloudWrite("img-"+id,r=>v&&v.length<250000?r.set({src:v,t:Date.now()}):r.delete())}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(_){}
@@ -2948,7 +2953,7 @@ function qty(q,fix){
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 function renderMenu(){
-  const row=d=>`<li><button type="button" class="rowbtn" data-id="${d.id}">${pic(d.id,"thumb")}<span class="name">${esc(d.name)}<span class="chef c-${CC[d.chef]}">${d.chef==="老东北美食"?"老东北":d.chef}</span></span><span class="base">${d.videoOnly?"仅视频":d.unit==="份"?"按份":fmt(d.base)+(d.unit==="g"?" g":" "+d.unit)}</span><span class="tag">${d.hot?`<span class="hot">${hotTxt(d)}</span>`:(view==="hot"&&!query.trim()?`<span class="hot nohot">暂无热度数据</span>`:"")}${esc(d.tag)}</span></button><button type="button" class="star" data-fav="${d.id}" aria-pressed="${favs.has(d.id)}" aria-label="${favs.has(d.id)?"取消收藏":"收藏"}${esc(d.name)}">${favs.has(d.id)?"★":"☆"}</button></li>`;
+  const row=d=>`<li><button type="button" class="rowbtn" data-id="${d.id}">${pic(d.id,"thumb")}<span class="name">${esc(d.name)}<span class="chef c-${CC[d.chef]}">${d.chef==="老东北美食"?"老东北":d.chef}</span>${done.has(d.id)?`<span class="done">已做</span>`:""}</span><span class="base">${d.videoOnly?"仅视频":d.unit==="份"?"按份":fmt(d.base)+(d.unit==="g"?" g":" "+d.unit)}</span><span class="tag">${d.hot?`<span class="hot">${hotTxt(d)}</span>`:(view==="hot"&&!query.trim()?`<span class="hot nohot">暂无热度数据</span>`:"")}${esc(d.tag)}</span></button><button type="button" class="star" data-fav="${d.id}" aria-pressed="${favs.has(d.id)}" aria-label="${favs.has(d.id)?"取消收藏":"收藏"}${esc(d.name)}">${favs.has(d.id)?"★":"☆"}</button></li>`;
   const ok=d=>chefFilter==="全部"||d.chef===chefFilter;
   let html="";const q=query.trim().toLowerCase();
   if(q){
@@ -2960,18 +2965,19 @@ function renderMenu(){
     const secs=CATS.map(([c,ids])=>[c,ids.map(id=>DISHES.find(d=>d.id===id)).filter(ok)]).filter(x=>x[1].length);
     html=secs.map(([c,ds])=>`<details class="sec" data-cat="${c}"${openCats.has(c)?" open":""}><summary><span class="st">${c}</span><span class="cnt">${ds.length} 道</span></summary><ul class="menu">${ds.map(row).join("")}</ul></details>`).join("");
   }else{
-    let ds=DISHES.filter(ok).filter(d=>view==="fav"?favs.has(d.id):true);
+    let ds=DISHES.filter(ok).filter(d=>view==="fav"?favs.has(d.id):view==="done"?done.has(d.id):true);
     if(view==="hot") ds=ds.filter(d=>d.hot).sort((x,y)=>y.hot[0]-x.hot[0]).concat(ds.filter(d=>!d.hot));
-    html=ds.length?`<ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">${view==="fav"?"还没有收藏。打开一道菜，点 ☆ 就能收藏。":"这个厨师下暂时没有热度数据。"}</p>`;
+    html=ds.length?`<ul class="menu flat">${ds.map(row).join("")}</ul>`:`<p class="empty">${view==="fav"?"还没有收藏。打开一道菜，点 ☆ 就能收藏。":view==="done"?"还没有标记做过的菜。打开一道菜，点「做过了」就会出现在这里。":"这个厨师下暂时没有热度数据。"}</p>`;
     if(view==="hot"&&ds.length) html+=`<p class="src">热度是搜索时各平台页面显示的数字（B 站播放、抖音点赞），口径不同，不能直接比较。查得到数字的排在前面，按数字从高到低；没查到的排在后面，标“暂无热度数据”，我不做估算。</p>`;
   }
   $("menu").innerHTML=html;
   const n=c=>DISHES.filter(d=>c==="全部"||d.chef===c).length;
   $("chefs").innerHTML=["全部","村驴","隋坡","老东北美食","网友家常"].map(c=>`<button type="button" class="fchip" data-chef="${c}" aria-pressed="${c===chefFilter}">${c==="老东北美食"?"老东北":c} ${n(c)}</button>`).join("");
-  $("views").innerHTML=[["all","按分类"],["fav","★ 收藏 "+favs.size],["hot","热度榜"]].map(([v,l])=>`<button type="button" class="fchip" data-view="${v}" aria-pressed="${v===view}">${l}</button>`).join("");
+  $("views").innerHTML=[["all","按分类"],["fav","★ 收藏 "+favs.size],["done","✓ 已做 "+done.size],["hot","热度榜"]].map(([v,l])=>`<button type="button" class="fchip" data-view="${v}" aria-pressed="${v===view}">${l}</button>`).join("");
 }
+function toggleDone(id){done.has(id)?done.delete(id):done.add(id);saveDone()}
 function toggleFav(id){favs.has(id)?favs.delete(id):favs.add(id);saveFavs()}
-function syncDishStar(){const b=$("d-star");if(!cur)return;const on=favs.has(cur.id);b.textContent=on?"★ 已收藏":"☆ 收藏";b.setAttribute("aria-pressed",String(on))}
+function syncDishStar(){const b=$("d-star");if(!cur)return;const on=favs.has(cur.id);b.textContent=on?"★ 已收藏":"☆ 收藏";b.setAttribute("aria-pressed",String(on));const k=$("d-done"),o=done.has(cur.id);k.textContent=o?"✓ 已做":"做过了";k.setAttribute("aria-pressed",String(o))}
 
 function renderBody(){
   const d=cur;
@@ -2996,7 +3002,7 @@ function recalc(){
   if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
 }
 
-const APP_VERSION="v2.7",APP_DATE="2026-11-13";
+const APP_VERSION="v2.8",APP_DATE="2026-11-13";
 function openDish(id){
   const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
   cur=d;factor=1;
@@ -3038,6 +3044,7 @@ $("img-file").addEventListener("change",e=>{
 $("q").addEventListener("input",e=>{query=e.target.value;$("q-clear").hidden=!query;renderMenu()});
 $("q-clear").addEventListener("click",()=>{query="";$("q").value="";$("q-clear").hidden=true;renderMenu();$("q").focus()});
 $("views").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b){view=b.dataset.view;renderMenu()}});
+$("d-done").addEventListener("click",()=>{if(cur){toggleDone(cur.id);syncDishStar();renderMenu()}});
 $("d-star").addEventListener("click",()=>{if(cur){toggleFav(cur.id);syncDishStar();renderMenu()}});
 $("chefs").addEventListener("click",e=>{const b=e.target.closest("[data-chef]");if(b){chefFilter=b.dataset.chef;renderMenu()}});
 $("menu").addEventListener("toggle",e=>{const t=e.target;if(!t.dataset||!t.dataset.cat)return;t.open?openCats.add(t.dataset.cat):openCats.delete(t.dataset.cat)},true);
@@ -3078,9 +3085,10 @@ renderMenu();route();rasterizeThumbs();
   const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
   if(!db||!user)return;const uid=await user.id();if(!uid)return;
   const col=db.collection("data/users/"+uid);const snap=await col.get();
-  const known=new Set(DISHES.map(d=>d.id));let remoteFavs=null;
+  const known=new Set(DISHES.map(d=>d.id));let remoteFavs=null,remoteDone=null;
   snap.docs.forEach(x=>{const v=x.data()||{};
     if(x.id==="favs"&&Array.isArray(v.ids))remoteFavs=v.ids.filter(i=>known.has(i));
+    else if(x.id==="done"&&Array.isArray(v.ids))remoteDone=v.ids.filter(i=>known.has(i));
     else if(x.id.startsWith("img-")&&typeof v.src==="string"&&known.has(x.id.slice(4))&&!imgs[x.id.slice(4)])imgs[x.id.slice(4)]=v.src;});
   cloud=col;
   const merged=new Set([...(remoteFavs||[]),...favs]);
@@ -3088,6 +3096,9 @@ renderMenu();route();rasterizeThumbs();
   favs=merged;try{localStorage.setItem("menu-favs",JSON.stringify([...favs]))}catch(_){}
   Object.keys(imgs).forEach(id=>{if(!snap.docs.some(x=>x.id==="img-"+id))pushImg(id)});
   if(needPush)pushFavs();
+  const mergedD=new Set([...(remoteDone||[]),...done]);const needD=!remoteDone||mergedD.size!==remoteDone.length;
+  done=mergedD;try{localStorage.setItem("menu-done",JSON.stringify([...done]))}catch(_){}
+  if(needD)pushDone();
   renderMenu();if(cur){syncDishStar();renderHero()}
 }catch(_){}})();
 </script>
