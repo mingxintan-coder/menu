@@ -13,7 +13,7 @@
 <meta name="theme-color" content="#1f6b45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{
   /* layout: one column, a menu board of rows; a dish opens as a sheet with a scale readout on top */
@@ -4775,17 +4775,22 @@ function artSvg(id){
   return ART_CACHE[id];
 }
 const imgs={};try{DISHES.forEach(d=>{const v=localStorage.getItem("menu-img-"+d.id);if(v)imgs[d.id]=v})}catch(_){}
-const THUMB={};let rasterQ=null;
+const THUMB={};let rasterQ=null;const BLANK="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 function pic(id,cls){if(imgs[id])return`<span class="${cls}"><img src="${imgs[id]}" alt=""></span>`;
   if(cls==="thumb"&&THUMB[id])return`<span class="${cls}"><img class="art r" data-art="${id}" src="${THUMB[id]}" alt="示意图"></span>`;
+  if(cls==="thumb")return`<span class="${cls}"><img class="art" data-art="${id}" data-lz="1" src="${BLANK}" alt="示意图"></span>`;
   return`<span class="${cls}"><img class="art" data-art="${id}" src="${artSvg(id)}" alt="示意图"></span>`}
+/* thumbnails are drawn only when they scroll near the screen, so the app opens fast */
+const LZ=("IntersectionObserver" in window)?new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const im=e.target;LZ.unobserve(im);const id=im.dataset.art;if(THUMB[id]){im.src=THUMB[id];im.classList.add("r")}else im.src=artSvg(id)}),{rootMargin:"400px"}):null;
+function lazyArt(root){(root||document).querySelectorAll("img[data-lz]").forEach(im=>{im.removeAttribute("data-lz");if(LZ)LZ.observe(im);else im.src=artSvg(im.dataset.art)})}
+try{new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches&&n.matches("img[data-lz]"))lazyArt(n.parentNode);else if(n.querySelector&&n.querySelector("img[data-lz]"))lazyArt(n)}}).observe(document.documentElement,{childList:true,subtree:true})}catch(_){}
 /* turn each thumbnail into a small bitmap once, so lists redraw instantly */
 function rasterizeThumbs(){if(rasterQ)return;rasterQ=DISHES.map(d=>d.id);
   const step=()=>{const id=rasterQ.shift();if(!id)return;const im=new Image();
     im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=168;c.getContext("2d").drawImage(im,40,40,160,160,0,0,168,168);
       c.toBlob(b=>{if(b){THUMB[id]=URL.createObjectURL(b);const pre=new Image();pre.onload=()=>{document.querySelectorAll('.thumb img.art[data-art="'+id+'"]').forEach(e=>{e.src=THUMB[id];e.classList.add("r")})};pre.src=THUMB[id]}setTimeout(step,0)},"image/png")}catch(_){rasterQ=[]}};
     im.onerror=()=>setTimeout(step,0);im.src=artSvg(id)};
-  (window.requestIdleCallback||setTimeout)(step)}
+  setTimeout(()=>(window.requestIdleCallback||setTimeout)(step),2500)}
 function renderHero(){const d=cur;$("hero").innerHTML=pic(d.id,"heroimg");$("hero-cap").textContent=imgs[d.id]?(cloud?"我的照片（已存到你的账号）":"我的照片（保存在这台设备的浏览器）"):"示意图，不是成品实拍";$("img-clear").hidden=!imgs[d.id]}
 function setImg(id,dataUrl){if(dataUrl){imgs[id]=dataUrl;try{localStorage.setItem("menu-img-"+id,dataUrl);$("img-msg").textContent=""}catch(_){$("img-msg").textContent="浏览器存储已满，这张照片只在本次打开时有效。"}}else{delete imgs[id];try{localStorage.removeItem("menu-img-"+id)}catch(_){}$("img-msg").textContent=""}pushImg(id);renderHero();renderMenu()}
 const UNITS={g:[["g",1],["斤",500],["lb",453.592],["oz",28.3495]]};
@@ -4805,12 +4810,13 @@ function qty(q,fix){
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
+let _CATOF=null;function catOf(id){if(!_CATOF){_CATOF={};CATS.forEach(([c,ids])=>ids.forEach(i=>{_CATOF[i]=(_CATOF[i]||"")+" "+c}))}return _CATOF[id]||""}
 function renderMenu(){
   const row=d=>`<li><button type="button" class="rowbtn" data-id="${d.id}">${pic(d.id,"thumb")}<span class="name">${esc(d.name)}<span class="chef c-${CC[d.chef]}">${d.chef==="老东北美食"?"老东北":d.chef}</span>${done.has(d.id)?`<span class="done">已做</span>`:""}</span><span class="base">${d.videoOnly?"仅视频":d.unit==="份"?"按份":fmt(d.base)+(d.unit==="g"?" g":" "+d.unit)}</span><span class="tag">${d.hot?`<span class="hot">${hotTxt(d)}</span>`:(view==="hot"&&!query.trim()?`<span class="hot nohot">暂无热度数据</span>`:"")}${esc(d.tag)}</span></button><button type="button" class="star" data-fav="${d.id}" aria-pressed="${favs.has(d.id)}" aria-label="${favs.has(d.id)?"取消收藏":"收藏"}${esc(d.name)}">${favs.has(d.id)?"★":"☆"}</button></li>`;
   const ok=d=>chefFilter==="全部"||d.chef===chefFilter;
   let html="";const q=query.trim().toLowerCase();
   const terms=q?q.split(/\s+/):[];
-  const hay=d=>(d.name+" "+d.tag+" "+d.chef+" "+d.main+" "+d.groups.map(g=>g[1].map(i=>i[0]).join(" ")).join(" ")).toLowerCase();
+  const hay=d=>(d.name+" "+d.tag+" "+d.chef+" "+d.main+" "+catOf(d.id)+" "+d.groups.map(g=>g[1].map(i=>i[0]).join(" ")).join(" ")).toLowerCase();
   const hit=d=>{if(!q)return true;const h=hay(d);return terms.every(t=>h.includes(t))};
   if(q){
     const ds=DISHES.filter(ok).filter(hit);
@@ -4891,7 +4897,7 @@ function recalc(){
   if(!(v>0)) $("factor").textContent="输入一个大于 0 的数，下面先按原配方显示。";
 }
 
-const APP_VERSION="v3.5",APP_DATE="2026-11-15";
+const APP_VERSION="v3.5.1",APP_DATE="2026-11-15";
 function openDish(id){
   const d=DISHES.find(x=>x.id===id); if(!d) return showMenu();
   cur=d;factor=1;
